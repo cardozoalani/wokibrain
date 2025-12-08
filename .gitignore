@@ -34,3 +34,6 @@ docs/internal/
 certs/
 terraform/certs/
 
+# Benchmark results
+benchmarks/results/
+
