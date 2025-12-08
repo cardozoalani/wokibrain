@@ -33,6 +33,10 @@ export class CreateBookingUseCase {
   ) {}
 
   async execute(input: CreateBookingInput, idempotencyKey?: string): Promise<BookingOutput> {
+    const startTime = Date.now();
+
+    // If idempotency key is provided, check first (outside lock for early return)
+    // But we'll also check inside the lock to prevent race conditions
     if (idempotencyKey) {
       const existing = await this.bookingRepo.findByIdempotencyKey(idempotencyKey);
       if (existing) {
@@ -40,8 +44,6 @@ export class CreateBookingUseCase {
         return this.mapToOutput(existing);
       }
     }
-
-    const startTime = Date.now();
 
     const restaurant = await this.restaurantRepo.findById(input.restaurantId);
     if (!restaurant) {
@@ -88,14 +90,27 @@ export class CreateBookingUseCase {
       throw new NoCapacityError();
     }
 
-    const lockKey = this.lockService.generateLockKey(
-      input.restaurantId,
-      input.sectorId,
-      selected.tableIds,
-      selected.start
-    );
+    // Use idempotency key as lock key if provided, otherwise use table-based lock
+    // This ensures that requests with the same idempotency key are serialized
+    const lockKey = idempotencyKey
+      ? `idempotency:${idempotencyKey}`
+      : this.lockService.generateLockKey(
+          input.restaurantId,
+          input.sectorId,
+          selected.tableIds,
+          selected.start
+        );
 
     const booking = await this.lockService.acquire(lockKey, async () => {
+      // Check idempotency again inside the lock to prevent race conditions
+      if (idempotencyKey) {
+        const existing = await this.bookingRepo.findByIdempotencyKey(idempotencyKey);
+        if (existing) {
+          this.logger.info('Idempotent booking request (inside lock)', { bookingId: existing.id });
+          return existing;
+        }
+      }
+
       const latestBookings = await this.bookingRepo.findBySectorAndDate(input.sectorId, date);
 
       for (const tableId of selected.tableIds) {
@@ -142,9 +157,9 @@ export class CreateBookingUseCase {
             start: newBooking.interval.start,
             end: newBooking.interval.end,
             durationMinutes: newBooking.duration.minutes,
-            guestName: (input as any).guestName,
-            guestEmail: (input as any).guestEmail,
-            guestPhone: (input as any).guestPhone,
+            guestName: input.guestName,
+            guestEmail: input.guestEmail,
+            guestPhone: input.guestPhone,
           },
           {
             idempotencyKey,

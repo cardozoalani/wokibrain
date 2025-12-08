@@ -1,33 +1,36 @@
-import { BookingRepository } from '@domain/repositories/booking.repository';
+import { BookingProjection } from '@infrastructure/projections/booking-read-model';
 import { NotFoundError } from '@shared/errors';
 import { Logger } from '../ports/logger.port';
 import { BookingOutput } from '../dtos/create-booking.dto';
 
 export class GetBookingUseCase {
   constructor(
-    private bookingRepo: BookingRepository,
+    private bookingProjection: BookingProjection,
     private _logger: Logger
   ) {}
 
   async execute(bookingId: string): Promise<BookingOutput> {
-    const booking = await this.bookingRepo.findById(bookingId);
+    const readModel = await this.bookingProjection.get(bookingId);
 
-    if (!booking) {
+    if (!readModel) {
       throw new NotFoundError('Booking', bookingId);
     }
 
     return {
-      id: booking.id,
-      restaurantId: booking.restaurantId,
-      sectorId: booking.sectorId,
-      tableIds: booking.tableIds,
-      partySize: booking.partySize,
-      start: booking.interval.start.toISOString(),
-      end: booking.interval.end.toISOString(),
-      durationMinutes: booking.duration.minutes,
-      status: booking.status,
-      createdAt: booking.createdAt.toISOString(),
-      updatedAt: booking.updatedAt.toISOString(),
+      id: readModel.id,
+      restaurantId: readModel.restaurantId,
+      sectorId: readModel.sectorId,
+      tableIds: readModel.tableIds,
+      partySize: readModel.partySize,
+      start: readModel.start.toISOString(),
+      end: readModel.end.toISOString(),
+      durationMinutes: readModel.durationMinutes,
+      status: readModel.status,
+      guestName: readModel.guestName,
+      guestEmail: readModel.guestEmail,
+      guestPhone: readModel.guestPhone,
+      createdAt: readModel.createdAt.toISOString(),
+      updatedAt: readModel.updatedAt.toISOString(),
     };
   }
 }

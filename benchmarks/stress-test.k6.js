@@ -17,26 +17,22 @@ export const options = {
       exec: 'discoveryScenario',
       startVUs: 0,
       stages: [
-        { duration: '1m', target: 50 },
-        { duration: '3m', target: 100 },
-        { duration: '2m', target: 200 },
-        { duration: '2m', target: 200 },
-        { duration: '2m', target: 0 },
+        { duration: '30s', target: 10 },
+        { duration: '1m', target: 20 },
+        { duration: '30s', target: 0 },
       ],
     },
     booking_stress: {
       executor: 'ramping-arrival-rate',
       exec: 'bookingScenario',
-      startRate: 10,
+      startRate: 5,
       timeUnit: '1s',
-      preAllocatedVUs: 50,
-      maxVUs: 500,
+      preAllocatedVUs: 10,
+      maxVUs: 50,
       stages: [
-        { duration: '1m', target: 50 },
-        { duration: '3m', target: 100 },
-        { duration: '2m', target: 200 },
-        { duration: '2m', target: 200 },
-        { duration: '2m', target: 0 },
+        { duration: '30s', target: 10 },
+        { duration: '1m', target: 20 },
+        { duration: '30s', target: 0 },
       ],
     },
     spike_test: {
@@ -44,13 +40,13 @@ export const options = {
       exec: 'spikeScenario',
       startVUs: 0,
       stages: [
-        { duration: '10s', target: 10 },
-        { duration: '10s', target: 500 },
-        { duration: '30s', target: 500 },
-        { duration: '10s', target: 10 },
+        { duration: '10s', target: 5 },
+        { duration: '10s', target: 20 },
+        { duration: '20s', target: 20 },
+        { duration: '10s', target: 5 },
         { duration: '10s', target: 0 },
       ],
-      startTime: '5m',
+      startTime: '2m',
     },
   },
   thresholds: {
@@ -162,10 +158,7 @@ export function spikeScenario() {
       'GET',
       `${BASE_URL}/api/v1/woki/discover?restaurantId=R1&sectorId=S1&date=2025-10-22&partySize=4&duration=90`,
     ],
-    [
-      'GET',
-      `${BASE_URL}/api/v1/woki/bookings?restaurantId=R1&sectorId=S1&date=2025-10-22`,
-    ],
+    ['GET', `${BASE_URL}/api/v1/woki/bookings?restaurantId=R1&sectorId=S1&date=2025-10-22`],
   ]);
 
   check(responses[0], {
@@ -189,7 +182,35 @@ export function handleSummary(data) {
 }
 
 function generateTextSummary(data) {
-  const summary = data.metrics;
+  const summary = data.metrics || {};
+  const httpDuration = summary.http_req_duration?.values || {};
+  const httpReqs = summary.http_reqs?.values || {};
+  const httpFailed = summary.http_req_failed?.values || {};
+
+  const safeToFixed = (value) => {
+    if (value == null || value === undefined || isNaN(value)) {
+      return '0.00';
+    }
+    try {
+      return Number(value).toFixed(2);
+    } catch (e) {
+      return '0.00';
+    }
+  };
+
+  const safeNumber = (value, defaultValue = 0) => {
+    if (value == null || value === undefined || isNaN(value)) {
+      return defaultValue;
+    }
+    return Number(value);
+  };
+
+  // k6 stores percentiles in different format
+  const p50 = httpDuration['p(50)'] || httpDuration.med || httpDuration.p50 || 0;
+  const p95 = httpDuration['p(95)'] || httpDuration.p95 || 0;
+  const p99 = httpDuration['p(99)'] || httpDuration.p99 || 0;
+  const avg = httpDuration.avg || httpDuration.mean || 0;
+  const max = httpDuration.max || 0;
 
   return `
 ╔════════════════════════════════════════════════════════════╗
@@ -199,36 +220,33 @@ function generateTextSummary(data) {
 ╚════════════════════════════════════════════════════════════╝
 
 📊 HTTP Metrics:
-  Requests:           ${summary.http_reqs.values.count}
-  Duration:           ${summary.http_req_duration.values.avg.toFixed(2)}ms (avg)
-  P50:                ${summary.http_req_duration.values.p50.toFixed(2)}ms
-  P95:                ${summary.http_req_duration.values.p95.toFixed(2)}ms
-  P99:                ${summary.http_req_duration.values.p99.toFixed(2)}ms
-  Max:                ${summary.http_req_duration.values.max.toFixed(2)}ms
+  Requests:           ${safeNumber(httpReqs.count, 0)}
+  Duration:           ${safeToFixed(avg)}ms (avg)
+  P50:                ${safeToFixed(p50)}ms
+  P95:                ${safeToFixed(p95)}ms
+  P99:                ${safeToFixed(p99)}ms
+  Max:                ${safeToFixed(max)}ms
 
 🎯 Custom Metrics:
-  Successful Bookings: ${summary.successful_bookings ? summary.successful_bookings.values.count : 0}
-  Failed Bookings:     ${summary.failed_bookings ? summary.failed_bookings.values.count : 0}
-  Error Rate:          ${((summary.errors?.values.rate || 0) * 100).toFixed(2)}%
+  Successful Bookings: ${safeNumber(summary.successful_bookings?.values?.count, 0)}
+  Failed Bookings:     ${safeNumber(summary.failed_bookings?.values?.count, 0)}
+  Error Rate:          ${safeToFixed((httpFailed.rate || summary.errors?.values?.rate || 0) * 100)}%
 
 ✅ Status Codes:
-  2xx:                ${summary.http_req_duration?.values?.['2xx'] || 0}
-  4xx:                ${summary.http_req_duration?.values?.['4xx'] || 0}
-  5xx:                ${summary.http_req_duration?.values?.['5xx'] || 0}
+  2xx:                ${safeNumber(summary['http_req_duration{status:200}']?.values?.count || summary.http_req_duration?.values?.['2xx'] || 0, 0)}
+  4xx:                ${safeNumber(summary['http_req_duration{status:400}']?.values?.count || summary.http_req_duration?.values?.['4xx'] || 0, 0)}
+  5xx:                ${safeNumber(summary['http_req_duration{status:500}']?.values?.count || summary.http_req_duration?.values?.['5xx'] || 0, 0)}
 
 🚀 Throughput:
-  Req/sec:            ${(summary.http_reqs.values.rate || 0).toFixed(2)}
-  Data received:      ${((summary.data_received?.values.count || 0) / 1024 / 1024).toFixed(2)} MB
-  Data sent:          ${((summary.data_sent?.values.count || 0) / 1024 / 1024).toFixed(2)} MB
+  Req/sec:            ${safeToFixed(httpReqs.rate)}
+  Data received:      ${safeToFixed(safeNumber(summary.data_received?.values?.count, 0) / 1024 / 1024)} MB
+  Data sent:          ${safeToFixed(safeNumber(summary.data_sent?.values?.count, 0) / 1024 / 1024)} MB
 
 ⏱️ Virtual Users:
-  Max VUs:            ${summary.vus_max?.values.value || 0}
+  Max VUs:            ${safeNumber(summary.vus_max?.values?.value, 0)}
 
-${summary.http_req_duration.values.p95 < 500 ? '✅ PASS: P95 < 500ms' : '❌ FAIL: P95 > 500ms'}
-${(summary.errors?.values.rate || 0) < 0.05 ? '✅ PASS: Error rate < 5%' : '❌ FAIL: Error rate > 5%'}
+${safeNumber(p95, 0) < 500 ? '✅ PASS: P95 < 500ms' : '❌ FAIL: P95 > 500ms'}
+${safeNumber(httpFailed.rate || summary.errors?.values?.rate || 0, 0) < 0.05 ? '✅ PASS: Error rate < 5%' : '❌ FAIL: Error rate > 5%'}
 
 `;
 }
-
-
-

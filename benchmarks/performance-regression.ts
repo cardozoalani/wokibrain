@@ -4,14 +4,26 @@ interface Benchmark {
   threshold: number;
 }
 
-const benchmarks: Benchmark[] = [
-  { name: 'Health Check', baseline: 5, threshold: 10 },
-  { name: 'Discovery', baseline: 100, threshold: 200 },
-  { name: 'Create Booking', baseline: 150, threshold: 300 },
-  { name: 'List Bookings', baseline: 50, threshold: 100 },
-];
-
+// Detect if we're testing production (has https:// or wokibrain.grgcrew.com)
+const isProduction =
+  process.env.BASE_URL?.includes('https://') ||
+  process.env.BASE_URL?.includes('wokibrain.grgcrew.com');
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+
+// Adjust baselines for production (accounting for network latency)
+const benchmarks: Benchmark[] = isProduction
+  ? [
+      { name: 'Health Check', baseline: 150, threshold: 300 }, // Production: ~175ms observed
+      { name: 'Discovery', baseline: 150, threshold: 300 }, // Production: ~170ms observed
+      { name: 'Create Booking', baseline: 200, threshold: 400 },
+      { name: 'List Bookings', baseline: 150, threshold: 300 }, // Production: ~171ms observed
+    ]
+  : [
+      { name: 'Health Check', baseline: 5, threshold: 10 }, // Localhost
+      { name: 'Discovery', baseline: 100, threshold: 200 },
+      { name: 'Create Booking', baseline: 150, threshold: 300 },
+      { name: 'List Bookings', baseline: 50, threshold: 100 },
+    ];
 
 async function measureLatency(url: string, iterations: number = 100): Promise<number[]> {
   const latencies: number[] = [];
@@ -31,7 +43,12 @@ function calculatePercentile(values: number[], percentile: number): number {
   return sorted[index];
 }
 
-async function runBenchmark(name: string, url: string, baseline: number, threshold: number): Promise<boolean> {
+async function runBenchmark(
+  name: string,
+  url: string,
+  baseline: number,
+  threshold: number
+): Promise<boolean> {
   console.log(`\n📊 Benchmarking: ${name}`);
   console.log(`  Baseline: ${baseline}ms | Threshold: ${threshold}ms`);
 
@@ -122,6 +139,3 @@ async function main(): Promise<void> {
 }
 
 main().catch(console.error);
-
-
-

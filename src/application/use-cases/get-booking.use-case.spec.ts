@@ -1,18 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GetBookingUseCase } from './get-booking.use-case';
-import { Booking, BookingStatus } from '@domain/entities/booking.entity';
-import { TimeInterval } from '@domain/value-objects/time-interval.vo';
-import { Duration } from '@domain/value-objects/duration.vo';
+import { BookingReadModel } from '@infrastructure/projections/booking-read-model';
 import { NotFoundError } from '@shared/errors';
 
 describe('GetBookingUseCase', () => {
   let useCase: GetBookingUseCase;
-  let mockBookingRepo: any;
+  let mockBookingProjection: any;
   let mockLogger: any;
 
   beforeEach(() => {
-    mockBookingRepo = {
-      findById: vi.fn(),
+    mockBookingProjection = {
+      get: vi.fn(),
     };
 
     mockLogger = {
@@ -22,27 +20,29 @@ describe('GetBookingUseCase', () => {
       debug: vi.fn(),
     };
 
-    useCase = new GetBookingUseCase(mockBookingRepo, mockLogger);
+    useCase = new GetBookingUseCase(mockBookingProjection, mockLogger);
   });
 
-  it('should get booking by id', async () => {
-    const interval = TimeInterval.create(
-      new Date('2025-10-22T20:00:00'),
-      new Date('2025-10-22T21:30:00')
-    );
-    const duration = Duration.create(90);
-    const booking = Booking.create(
-      'B1',
-      'R1',
-      'S1',
-      ['T1'],
-      4,
-      interval,
-      duration,
-      BookingStatus.CONFIRMED
-    );
+  it('should get booking by id with guest information', async () => {
+    const readModel: BookingReadModel = {
+      id: 'B1',
+      restaurantId: 'R1',
+      sectorId: 'S1',
+      tableIds: ['T1'],
+      partySize: 4,
+      start: new Date('2025-10-22T20:00:00'),
+      end: new Date('2025-10-22T21:30:00'),
+      durationMinutes: 90,
+      status: 'CONFIRMED',
+      guestName: 'John Doe',
+      guestEmail: 'john@example.com',
+      guestPhone: '+1234567890',
+      createdAt: new Date('2025-10-22T19:00:00'),
+      updatedAt: new Date('2025-10-22T19:00:00'),
+      version: 1,
+    };
 
-    mockBookingRepo.findById.mockResolvedValue(booking);
+    mockBookingProjection.get.mockResolvedValue(readModel);
 
     const result = await useCase.execute('B1');
 
@@ -50,11 +50,40 @@ describe('GetBookingUseCase', () => {
     expect(result.restaurantId).toBe('R1');
     expect(result.partySize).toBe(4);
     expect(result.durationMinutes).toBe(90);
-    expect(result.status).toBe(BookingStatus.CONFIRMED);
+    expect(result.status).toBe('CONFIRMED');
+    expect(result.guestName).toBe('John Doe');
+    expect(result.guestEmail).toBe('john@example.com');
+    expect(result.guestPhone).toBe('+1234567890');
+  });
+
+  it('should get booking without guest information', async () => {
+    const readModel: BookingReadModel = {
+      id: 'B1',
+      restaurantId: 'R1',
+      sectorId: 'S1',
+      tableIds: ['T1'],
+      partySize: 4,
+      start: new Date('2025-10-22T20:00:00'),
+      end: new Date('2025-10-22T21:30:00'),
+      durationMinutes: 90,
+      status: 'CONFIRMED',
+      createdAt: new Date('2025-10-22T19:00:00'),
+      updatedAt: new Date('2025-10-22T19:00:00'),
+      version: 1,
+    };
+
+    mockBookingProjection.get.mockResolvedValue(readModel);
+
+    const result = await useCase.execute('B1');
+
+    expect(result.id).toBe('B1');
+    expect(result.guestName).toBeUndefined();
+    expect(result.guestEmail).toBeUndefined();
+    expect(result.guestPhone).toBeUndefined();
   });
 
   it('should throw NotFoundError for non-existent booking', async () => {
-    mockBookingRepo.findById.mockResolvedValue(null);
+    mockBookingProjection.get.mockResolvedValue(null);
 
     await expect(useCase.execute('NONEXISTENT')).rejects.toThrow(NotFoundError);
   });

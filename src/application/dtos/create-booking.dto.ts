@@ -14,6 +14,12 @@ export const CreateBookingInputSchema = z.object({
     .string()
     .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
     .optional(),
+  guestName: z.string().max(100).optional(),
+  guestEmail: z.string().email().optional(),
+  guestPhone: z
+    .string()
+    .regex(/^\+?[1-9]\d{1,14}$/)
+    .optional(),
 });
 
 export type CreateBookingInput = z.infer<typeof CreateBookingInputSchema>;
@@ -28,6 +34,9 @@ export interface BookingOutput {
   end: string;
   durationMinutes: number;
   status: string;
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
   createdAt: string;
   updatedAt: string;
 }

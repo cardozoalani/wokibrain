@@ -247,7 +247,10 @@ export class FastifyServer {
 
     const listBookingsUseCase = new ListBookingsUseCase(sectorRepo, bookingRepo, this.logger);
 
-    const getBookingUseCase = new GetBookingUseCase(bookingRepo, this.logger);
+    // Initialize BookingProjection for read model queries (includes guest information)
+    const eventStore = new MongoDBEventStore(db);
+    const bookingProjection = new MongoDBBookingProjection(db, eventStore);
+    const getBookingUseCase = new GetBookingUseCase(bookingProjection, this.logger);
 
     const deleteBookingUseCase = new DeleteBookingUseCase(
       bookingRepo,
