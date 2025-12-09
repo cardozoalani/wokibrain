@@ -1,6 +1,11 @@
 import { MongoClient, Db } from 'mongodb';
 import { readFileSync } from 'fs';
+import pino from 'pino';
 import { Env } from '../config/env';
+
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+});
 
 export class MongoDBClient {
   private client: MongoClient | null = null;
@@ -36,17 +41,17 @@ export class MongoDBClient {
         // If CA file is successfully loaded, we can validate certificates
         options.tlsAllowInvalidCertificates = false;
         options.tlsAllowInvalidHostnames = false;
-        console.log(`TLS configured with CA file: ${this.config.MONGODB_TLS_CA_FILE}`);
+        logger.info({ caFile: this.config.MONGODB_TLS_CA_FILE }, 'TLS configured with CA file');
       } catch (error) {
-        console.warn(
-          `Warning: Could not read TLS CA file: ${this.config.MONGODB_TLS_CA_FILE}, using invalid certificate mode`,
-          error
+        logger.warn(
+          { error, caFile: this.config.MONGODB_TLS_CA_FILE },
+          'Could not read TLS CA file, using invalid certificate mode'
         );
         // Continue with invalid certificates allowed
       }
     } else {
-      console.warn(
-        'Warning: MONGODB_TLS_CA_FILE not set, allowing invalid certificates (not recommended for production)'
+      logger.warn(
+        'MONGODB_TLS_CA_FILE not set, allowing invalid certificates (not recommended for production)'
       );
     }
 

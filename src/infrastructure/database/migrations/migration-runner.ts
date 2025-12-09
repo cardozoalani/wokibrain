@@ -1,6 +1,11 @@
 import { Db } from 'mongodb';
 import { readdirSync } from 'fs';
 import { join } from 'path';
+import pino from 'pino';
+
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+});
 
 interface Migration {
   version: number;
@@ -29,14 +34,14 @@ export class MigrationRunner {
     const pendingMigrations = migrations.filter((m) => !appliedVersions.includes(m.version));
 
     if (pendingMigrations.length === 0) {
-      console.log('✅ No pending migrations');
+      logger.info('No pending migrations');
       return;
     }
 
-    console.log(`📦 Running ${pendingMigrations.length} migrations...`);
+    logger.info({ count: pendingMigrations.length }, 'Running migrations');
 
     for (const migration of pendingMigrations) {
-      console.log(`  Running migration ${migration.version}: ${migration.name}`);
+      logger.info({ version: migration.version, name: migration.name }, 'Running migration');
 
       await migration.up(this.db);
 
@@ -46,10 +51,10 @@ export class MigrationRunner {
         appliedAt: new Date(),
       });
 
-      console.log(`  ✅ Migration ${migration.version} applied`);
+      logger.info({ version: migration.version }, 'Migration applied');
     }
 
-    console.log('✅ All migrations completed');
+    logger.info('All migrations completed');
   }
 
   async rollbackLastMigration(): Promise<void> {
@@ -62,7 +67,7 @@ export class MigrationRunner {
       .toArray();
 
     if (lastMigration.length === 0) {
-      console.log('No migrations to rollback');
+      logger.info('No migrations to rollback');
       return;
     }
 
@@ -74,12 +79,12 @@ export class MigrationRunner {
       throw new Error(`Migration ${record.version} not found`);
     }
 
-    console.log(`Rolling back migration ${migration.version}: ${migration.name}`);
+    logger.info({ version: migration.version, name: migration.name }, 'Rolling back migration');
 
     await migration.down(this.db);
     await migrationsCollection.deleteOne({ version: migration.version });
 
-    console.log(`✅ Migration ${migration.version} rolled back`);
+    logger.info({ version: migration.version }, 'Migration rolled back');
   }
 
   private async loadMigrations(): Promise<Migration[]> {

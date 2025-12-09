@@ -2,13 +2,27 @@ import { validateEnv } from './infrastructure/config/env';
 import { FastifyServer } from './presentation/http/server';
 import { seedDatabase } from './infrastructure/database/seed';
 import { MongoDBClient } from './infrastructure/database/mongodb.client';
+import pino from 'pino';
+
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  transport:
+    process.env.NODE_ENV !== 'production'
+      ? {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+          },
+        }
+      : undefined,
+});
 
 async function bootstrap(): Promise<void> {
   const config = validateEnv();
   const server = new FastifyServer(config);
 
   const handleShutdown = async (signal: string): Promise<void> => {
-    console.log(`\n${signal} received, gracefully shutting down...`);
+    logger.info(`${signal} received, gracefully shutting down...`);
     await server.stop();
     process.exit(0);
   };
@@ -17,30 +31,30 @@ async function bootstrap(): Promise<void> {
   process.on('SIGINT', () => handleShutdown('SIGINT'));
 
   process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    logger.error({ promise, reason }, 'Unhandled Rejection');
     process.exit(1);
   });
 
   process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
+    logger.error({ error }, 'Uncaught Exception');
     process.exit(1);
   });
 
   await server.initialize();
 
   if (process.env.SEED_DB === 'true') {
-    console.log('Seeding database...');
+    logger.info('Seeding database...');
     const dbClient = new MongoDBClient(config);
     await dbClient.connect();
     await seedDatabase(dbClient);
     await dbClient.disconnect();
-    console.log('Database seeded successfully');
+    logger.info('Database seeded successfully');
   }
 
   await server.start();
 }
 
 bootstrap().catch((error) => {
-  console.error('Failed to start application:', error);
+  logger.error({ error }, 'Failed to start application');
   process.exit(1);
 });

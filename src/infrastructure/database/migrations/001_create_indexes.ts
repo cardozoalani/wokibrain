@@ -1,4 +1,9 @@
 import { Db } from 'mongodb';
+import pino from 'pino';
+
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+});
 
 export async function up(db: Db): Promise<void> {
   await db.collection('restaurants').createIndex({ id: 1 }, { unique: true });
@@ -41,7 +46,7 @@ export async function up(db: Db): Promise<void> {
   await db.collection('bookings_read').createIndex({ status: 1 });
   await db.collection('bookings_read').createIndex({ guestEmail: 1 });
 
-  console.log('✅ Migration 001: Indexes created');
+  logger.info('Migration 001: Indexes created');
 }
 
 export async function down(db: Db): Promise<void> {
@@ -54,5 +59,5 @@ export async function down(db: Db): Promise<void> {
   await db.collection('snapshots').dropIndexes();
   await db.collection('bookings_read').dropIndexes();
 
-  console.log('✅ Migration 001: Indexes dropped');
+  logger.info('Migration 001: Indexes dropped');
 }
