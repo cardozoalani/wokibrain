@@ -15,7 +15,7 @@ COPY package*.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci
 # Copy source code (this layer will be cached if only package.json changes)
-COPY tsconfig.json tsconfig.paths.json ./
+COPY tsconfig.json ./
 COPY src ./src
 # Copy only necessary files for build
 COPY openapi.yaml asyncapi.yaml ./
