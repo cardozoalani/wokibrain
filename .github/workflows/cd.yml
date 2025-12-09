@@ -4,13 +4,12 @@ on:
   push:
     branches: [main]
     tags:
-      - "v*"
+      - 'v*'
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   AWS_REGION: us-east-1
-  ECR_REPO: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/production-wokibrain
   ECS_CLUSTER: production-wokibrain-cluster
   ECS_SERVICE: production-wokibrain-service
 
@@ -54,7 +53,7 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-            ${{ env.ECR_REPO }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/production-wokibrain
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -80,7 +79,8 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           IMAGE_TAG=${GITHUB_SHA::8}
-          FULL_IMAGE_URI="${{ env.ECR_REPO }}:${IMAGE_TAG}"
+          ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/production-wokibrain"
+          FULL_IMAGE_URI="${ECR_REPO}:${IMAGE_TAG}"
 
           echo "🔄 Updating ECS service with image: ${FULL_IMAGE_URI}"
 
