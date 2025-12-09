@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MongoClient, Db, Collection } from 'mongodb';
 import { MongoDBBookingRepository } from './mongodb-booking.repository';
 import { Booking, BookingStatus } from '@domain/entities/booking.entity';
@@ -6,13 +7,15 @@ import { TimeInterval } from '@domain/value-objects/time-interval.vo';
 import { Duration } from '@domain/value-objects/duration.vo';
 
 describe('MongoDBBookingRepository', () => {
+  let mongoServer: MongoMemoryServer;
   let client: MongoClient;
   let db: Db;
   let repository: MongoDBBookingRepository;
-  const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wokibrain_test';
 
   beforeEach(async () => {
-    client = new MongoClient(MONGODB_URI);
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    client = new MongoClient(uri);
     await client.connect();
     db = client.db('wokibrain_test');
     repository = new MongoDBBookingRepository(
@@ -27,7 +30,10 @@ describe('MongoDBBookingRepository', () => {
   afterEach(async () => {
     try {
       if (client) {
-        await client.close(true);
+        await client.close();
+      }
+      if (mongoServer) {
+        await mongoServer.stop();
       }
     } catch (error) {
       // Ignore errors when closing client (may already be closed)

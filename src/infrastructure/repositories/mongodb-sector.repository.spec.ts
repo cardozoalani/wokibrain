@@ -1,16 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MongoClient, Db } from 'mongodb';
 import { MongoDBSectorRepository } from './mongodb-sector.repository';
 import { Sector } from '@domain/entities/sector.entity';
 
 describe('MongoDBSectorRepository', () => {
+  let mongoServer: MongoMemoryServer;
   let client: MongoClient;
   let db: Db;
   let repository: MongoDBSectorRepository;
-  const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wokibrain_test';
 
   beforeEach(async () => {
-    client = new MongoClient(MONGODB_URI);
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    client = new MongoClient(uri);
     await client.connect();
     db = client.db('wokibrain_test');
     repository = new MongoDBSectorRepository(db.collection('sectors'));
@@ -20,7 +23,10 @@ describe('MongoDBSectorRepository', () => {
   afterEach(async () => {
     try {
       if (client) {
-        await client.close(true);
+        await client.close();
+      }
+      if (mongoServer) {
+        await mongoServer.stop();
       }
     } catch (error) {
       // Ignore errors when closing client (may already be closed)
