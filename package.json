@@ -22,6 +22,7 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
+    "ci:local": "./scripts/ci-local.sh",
     "docker:build": "docker build -t wokibrain:latest .",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",

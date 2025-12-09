@@ -7,6 +7,7 @@ import { Logger } from '@application/ports/logger.port';
 import { CreateBookingCommand } from '@application/commands/create-booking.command';
 import { GetBookingQuery } from '@application/queries/get-booking.query';
 import { ListBookingsQuery } from '@application/queries/list-bookings.query';
+import { ListBookingsOutput } from '@application/dtos/list-bookings.dto';
 import { DiscoverSeatsQuery } from '@application/queries/discover-seats.query';
 
 export class GrpcServer {
@@ -120,7 +121,7 @@ export class GrpcServer {
         limit: call.request.limit,
       });
 
-      const result = (await this.queryBus.execute(query));
+      const result = (await this.queryBus.execute(query)) as ListBookingsOutput;
       const bookings = Array.isArray(result?.bookings) ? result.bookings : [];
       callback(null, {
         bookings: bookings.map((b: any) => this.toGrpcBooking(b)),
