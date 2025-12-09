@@ -76,6 +76,44 @@ const docsRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // Serve static assets for AsyncAPI docs (CSS, JS) - must be registered BEFORE the main route
+  fastify.get('/docs/websockets/*', async (request, reply) => {
+    // Extract the path after /docs/websockets/
+    const urlPath = request.url;
+    const match = urlPath.match(/\/docs\/websockets\/(.+)$/);
+    if (!match) {
+      return reply.code(404).send({ error: 'Invalid path' });
+    }
+    const assetRelativePath = match[1];
+    const assetPath = join(process.cwd(), 'public', 'websockets-docs.html', assetRelativePath);
+
+    if (!existsSync(assetPath)) {
+      return reply.code(404).send({ error: 'Asset not found' });
+    }
+
+    const stats = statSync(assetPath);
+    if (stats.isDirectory()) {
+      return reply.code(404).send({ error: 'Asset not found' });
+    }
+
+    const content = readFileSync(assetPath);
+    const ext = assetPath.split('.').pop()?.toLowerCase();
+    const contentType =
+      ext === 'css'
+        ? 'text/css'
+        : ext === 'js'
+          ? 'application/javascript'
+          : ext === 'png'
+            ? 'image/png'
+            : ext === 'jpg' || ext === 'jpeg'
+              ? 'image/jpeg'
+              : ext === 'svg'
+                ? 'image/svg+xml'
+                : 'application/octet-stream';
+
+    return reply.type(contentType).send(content);
+  });
+
   fastify.get('/docs/websockets', async (_request, reply) => {
     // Try AsyncAPI-generated docs first (check if it's a directory with index.html)
     const asyncApiDocsDir = join(process.cwd(), 'public', 'websockets-docs.html');
@@ -86,7 +124,10 @@ const docsRoutes: FastifyPluginAsync = async (fastify) => {
 
     // Check if AsyncAPI docs directory exists with index.html
     if (existsSync(asyncApiDocsIndex)) {
-      const html = readFileSync(asyncApiDocsIndex, 'utf8');
+      let html = readFileSync(asyncApiDocsIndex, 'utf8');
+      // Fix relative paths for CSS and JS assets to work with /api/v1/docs/websockets
+      html = html.replace(/href="css\//g, 'href="/api/v1/docs/websockets/css/');
+      html = html.replace(/src="js\//g, 'src="/api/v1/docs/websockets/js/');
       return reply.type('text/html').send(html);
     }
 
