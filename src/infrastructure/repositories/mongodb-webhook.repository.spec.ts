@@ -138,4 +138,3 @@ describe('MongoDBWebhookRepository', () => {
     expect(found).toBeNull();
   });
 });
-

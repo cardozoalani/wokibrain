@@ -66,7 +66,12 @@ describe('LockService', () => {
 
   describe('generateLockKey', () => {
     it('should generate lock key', () => {
-      const key = lockService.generateLockKey('R1', 'S1', ['T1', 'T2'], new Date('2025-10-22T20:00:00'));
+      const key = lockService.generateLockKey(
+        'R1',
+        'S1',
+        ['T1', 'T2'],
+        new Date('2025-10-22T20:00:00')
+      );
 
       expect(key).toContain('R1');
       expect(key).toContain('S1');
@@ -74,13 +79,20 @@ describe('LockService', () => {
     });
 
     it('should sort table IDs in lock key', () => {
-      const key1 = lockService.generateLockKey('R1', 'S1', ['T2', 'T1'], new Date('2025-10-22T20:00:00'));
-      const key2 = lockService.generateLockKey('R1', 'S1', ['T1', 'T2'], new Date('2025-10-22T20:00:00'));
+      const key1 = lockService.generateLockKey(
+        'R1',
+        'S1',
+        ['T2', 'T1'],
+        new Date('2025-10-22T20:00:00')
+      );
+      const key2 = lockService.generateLockKey(
+        'R1',
+        'S1',
+        ['T1', 'T2'],
+        new Date('2025-10-22T20:00:00')
+      );
 
       expect(key1).toBe(key2);
     });
   });
 });
-
-
-

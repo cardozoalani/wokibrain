@@ -142,6 +142,3 @@ describe('WebhookService', () => {
     expect(result.error).toContain('not active');
   });
 });
-
-
-

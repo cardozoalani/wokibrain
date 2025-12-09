@@ -47,10 +47,9 @@ export class TimeInterval extends ValueObject<TimeIntervalProps> {
   }
 
   touches(other: TimeInterval): boolean {
-    return this._value.end.getTime() === other.start.getTime() || 
-           other.end.getTime() === this._value.start.getTime();
+    return (
+      this._value.end.getTime() === other.start.getTime() ||
+      other.end.getTime() === this._value.start.getTime()
+    );
   }
 }
-
-
-

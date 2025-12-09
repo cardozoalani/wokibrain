@@ -51,6 +51,3 @@ describe('TimeInterval', () => {
     expect(interval1.touches(interval2)).toBe(true);
   });
 });
-
-
-

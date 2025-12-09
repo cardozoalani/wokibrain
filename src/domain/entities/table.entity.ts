@@ -65,6 +65,3 @@ export class Table extends Entity<TableProps> {
     };
   }
 }
-
-
-

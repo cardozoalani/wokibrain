@@ -16,6 +16,3 @@ export class DiscoverSeatsQuery extends BaseQuery {
     super('DiscoverSeats');
   }
 }
-
-
-

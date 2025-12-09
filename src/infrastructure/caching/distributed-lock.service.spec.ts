@@ -82,6 +82,3 @@ describe('RedisDistributedLock', () => {
     });
   });
 });
-
-
-

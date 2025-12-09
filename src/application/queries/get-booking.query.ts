@@ -5,6 +5,3 @@ export class GetBookingQuery extends BaseQuery {
     super('GetBooking');
   }
 }
-
-
-

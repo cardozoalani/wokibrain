@@ -157,6 +157,3 @@ describe('CreateBookingUseCase', () => {
     await expect(useCase.execute(input)).rejects.toThrow(NoCapacityError);
   });
 });
-
-
-

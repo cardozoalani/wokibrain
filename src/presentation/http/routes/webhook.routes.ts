@@ -299,4 +299,3 @@ const webhookRoutes: FastifyPluginAsync<WebhookRoutesOptions> = async (fastify, 
 };
 
 export default webhookRoutes;
-

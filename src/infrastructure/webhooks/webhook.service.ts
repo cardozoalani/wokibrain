@@ -145,7 +145,9 @@ export class WebhookService {
         };
       } else {
         // Retry on client/server errors (4xx/5xx)
-        const shouldRetry = response.status >= 500 || (response.status >= 400 && response.status < 500 && attempt < opts.maxRetries);
+        const shouldRetry =
+          response.status >= 500 ||
+          (response.status >= 400 && response.status < 500 && attempt < opts.maxRetries);
 
         if (shouldRetry && attempt < opts.maxRetries) {
           this.logger.warn(`Webhook delivery failed, retrying`, {
@@ -237,14 +239,10 @@ export class WebhookService {
    */
   verifySignature(payload: string, signature: string, secret: string): boolean {
     const expectedSignature = this.generateSignature(payload, secret);
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
-    );
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
   }
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
-

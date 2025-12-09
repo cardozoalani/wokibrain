@@ -76,6 +76,3 @@ export class TableAssignedEvent extends BaseDomainEvent {
     super(aggregateId, 'Booking', 'TableAssigned', version, payload, metadata);
   }
 }
-
-
-

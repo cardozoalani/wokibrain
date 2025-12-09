@@ -169,6 +169,3 @@ describe('AuthMiddleware', () => {
     });
   });
 });
-
-
-

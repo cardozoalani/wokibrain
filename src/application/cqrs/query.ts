@@ -28,6 +28,3 @@ export interface QueryBus {
   execute<T extends Query, R>(query: T): Promise<R>;
   register<T extends Query, R>(queryType: string, handler: QueryHandler<T, R>): void;
 }
-
-
-

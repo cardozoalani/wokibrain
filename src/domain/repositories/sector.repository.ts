@@ -5,6 +5,3 @@ export interface SectorRepository {
   findByRestaurantId(restaurantId: string): Promise<Sector[]>;
   save(sector: Sector): Promise<void>;
 }
-
-
-

@@ -80,4 +80,3 @@ interface WebhookDocument {
   createdAt: Date;
   updatedAt: Date;
 }
-

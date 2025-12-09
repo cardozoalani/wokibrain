@@ -138,6 +138,3 @@ describe('Booking', () => {
     expect(json.status).toBe(BookingStatus.CONFIRMED);
   });
 });
-
-
-

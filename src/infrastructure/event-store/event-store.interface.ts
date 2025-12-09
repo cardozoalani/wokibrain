@@ -49,6 +49,3 @@ export interface EventStore {
     handler: (event: DomainEvent) => Promise<void>
   ): Promise<void>;
 }
-
-
-

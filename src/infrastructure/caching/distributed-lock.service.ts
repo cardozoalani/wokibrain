@@ -45,6 +45,3 @@ export class RedisDistributedLock implements DistributedLock {
     return `${this.lockPrefix}${key}`;
   }
 }
-
-
-

@@ -36,6 +36,3 @@ describe('CapacityRange', () => {
     expect(merged.max).toBe(10);
   });
 });
-
-
-

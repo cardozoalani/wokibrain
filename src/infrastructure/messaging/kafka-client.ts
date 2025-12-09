@@ -62,7 +62,11 @@ export class KafkaClient {
   async disconnect(): Promise<void> {
     if (!this.connected) return;
 
-    await Promise.all([this.producer.disconnect(), this.consumer.disconnect(), this.admin.disconnect()]);
+    await Promise.all([
+      this.producer.disconnect(),
+      this.consumer.disconnect(),
+      this.admin.disconnect(),
+    ]);
 
     this.connected = false;
     this.logger.info('Kafka client disconnected');
@@ -150,7 +154,9 @@ export class KafkaClient {
     });
   }
 
-  async createTopics(topics: Array<{ topic: string; numPartitions?: number; replicationFactor?: number }>): Promise<void> {
+  async createTopics(
+    topics: Array<{ topic: string; numPartitions?: number; replicationFactor?: number }>
+  ): Promise<void> {
     const created = await this.admin.createTopics({
       topics: topics.map((t) => ({
         topic: t.topic,
@@ -177,4 +183,3 @@ export class KafkaClient {
     this.logger.info('Kafka topics deleted', { topics });
   }
 }
-

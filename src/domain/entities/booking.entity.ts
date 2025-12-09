@@ -144,6 +144,3 @@ export class Booking extends Entity<BookingProps> {
     };
   }
 }
-
-
-

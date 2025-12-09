@@ -100,6 +100,3 @@ describe('KafkaEventBus', () => {
     });
   });
 });
-
-
-

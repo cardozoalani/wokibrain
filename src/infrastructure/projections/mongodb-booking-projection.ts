@@ -114,4 +114,3 @@ export class MongoDBBookingProjection implements BookingProjection {
     return await this.collection.find(filters).toArray();
   }
 }
-

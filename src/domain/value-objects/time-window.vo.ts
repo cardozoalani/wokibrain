@@ -62,6 +62,3 @@ export class TimeWindow extends ValueObject<TimeWindowProps> {
     return thisStart < otherEnd && otherStart < thisEnd;
   }
 }
-
-
-

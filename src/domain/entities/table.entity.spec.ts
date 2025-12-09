@@ -34,6 +34,3 @@ describe('Table', () => {
     expect(json.maxSize).toBe(4);
   });
 });
-
-
-

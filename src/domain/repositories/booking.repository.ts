@@ -9,6 +9,3 @@ export interface BookingRepository {
   saveWithIdempotencyKey(booking: Booking, idempotencyKey: string): Promise<void>;
   delete(id: string): Promise<void>;
 }
-
-
-

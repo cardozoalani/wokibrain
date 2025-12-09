@@ -22,6 +22,3 @@ export interface BookingProjection {
   get(bookingId: string): Promise<BookingReadModel | null>;
   list(filters: Record<string, unknown>): Promise<BookingReadModel[]>;
 }
-
-
-

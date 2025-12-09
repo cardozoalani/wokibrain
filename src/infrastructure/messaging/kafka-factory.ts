@@ -33,6 +33,3 @@ export function createKafkaClient(env: Env, logger: Logger): KafkaClient | null 
 
   return new KafkaClient(config, logger);
 }
-
-
-

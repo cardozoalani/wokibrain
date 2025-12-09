@@ -40,6 +40,3 @@ export class Duration extends ValueObject<number> {
     return new Date(date.getTime() + this._value * 60 * 1000);
   }
 }
-
-
-

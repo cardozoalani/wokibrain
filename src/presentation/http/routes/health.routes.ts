@@ -42,4 +42,3 @@ const healthRoutes: FastifyPluginAsync<HealthRoutesOptions> = async (fastify, op
 };
 
 export default healthRoutes;
-

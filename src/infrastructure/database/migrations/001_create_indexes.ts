@@ -11,9 +11,7 @@ export async function up(db: Db): Promise<void> {
   await db.collection('tables').createIndex({ sectorId: 1 });
   await db.collection('tables').createIndex({ sectorId: 1, name: 1 });
 
-  await db
-    .collection('bookings')
-    .createIndex({ id: 1 }, { unique: true });
+  await db.collection('bookings').createIndex({ id: 1 }, { unique: true });
   await db
     .collection('bookings')
     .createIndex({ sectorId: 1, 'interval.start': 1, 'interval.end': 1 });
@@ -21,7 +19,7 @@ export async function up(db: Db): Promise<void> {
     .collection('bookings')
     .createIndex({ tableIds: 1, 'interval.start': 1, 'interval.end': 1 });
   await db.collection('bookings').createIndex({ status: 1 });
-  await db.collection('bookings').createIndex({ 'guestEmail': 1 });
+  await db.collection('bookings').createIndex({ guestEmail: 1 });
 
   await db
     .collection('idempotency')
@@ -29,27 +27,17 @@ export async function up(db: Db): Promise<void> {
 
   await db
     .collection('events')
-    .createIndex(
-      { aggregateId: 1, aggregateType: 1, version: 1 },
-      { unique: true }
-    );
+    .createIndex({ aggregateId: 1, aggregateType: 1, version: 1 }, { unique: true });
   await db.collection('events').createIndex({ aggregateId: 1, version: 1 });
   await db.collection('events').createIndex({ aggregateType: 1, occurredAt: 1 });
   await db.collection('events').createIndex({ eventType: 1 });
 
   await db
     .collection('snapshots')
-    .createIndex(
-      { aggregateId: 1, aggregateType: 1, version: -1 },
-      { unique: true }
-    );
+    .createIndex({ aggregateId: 1, aggregateType: 1, version: -1 }, { unique: true });
 
-  await db
-    .collection('bookings_read')
-    .createIndex({ id: 1 }, { unique: true });
-  await db
-    .collection('bookings_read')
-    .createIndex({ restaurantId: 1, sectorId: 1, start: 1 });
+  await db.collection('bookings_read').createIndex({ id: 1 }, { unique: true });
+  await db.collection('bookings_read').createIndex({ restaurantId: 1, sectorId: 1, start: 1 });
   await db.collection('bookings_read').createIndex({ status: 1 });
   await db.collection('bookings_read').createIndex({ guestEmail: 1 });
 
@@ -68,6 +56,3 @@ export async function down(db: Db): Promise<void> {
 
   console.log('✅ Migration 001: Indexes dropped');
 }
-
-
-

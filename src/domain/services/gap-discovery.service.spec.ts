@@ -63,4 +63,3 @@ describe('GapDiscoveryService', () => {
     expect(intersection[0].end.getTime()).toBe(new Date('2025-10-22T21:00:00').getTime());
   });
 });
-

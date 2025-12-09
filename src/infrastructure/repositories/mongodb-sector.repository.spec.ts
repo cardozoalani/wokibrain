@@ -52,4 +52,3 @@ describe('MongoDBSectorRepository', () => {
     expect(sectors.some((s) => s.id === 'S2')).toBe(true);
   });
 });
-

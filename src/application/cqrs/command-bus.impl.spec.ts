@@ -71,4 +71,3 @@ describe('InMemoryCommandBus', () => {
     expect(mockLogger.error).toHaveBeenCalled();
   });
 });
-

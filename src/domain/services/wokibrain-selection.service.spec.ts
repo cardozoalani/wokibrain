@@ -84,12 +84,7 @@ describe('WokiBrainSelectionService', () => {
         ],
       ]);
 
-      const candidates = service.generateCandidates(
-        [table],
-        tableGaps,
-        3,
-        Duration.create(90)
-      );
+      const candidates = service.generateCandidates([table], tableGaps, 3, Duration.create(90));
 
       expect(candidates.length).toBeGreaterThan(0);
       expect(candidates.some((c) => c.kind === 'single')).toBe(true);
@@ -143,15 +138,9 @@ describe('WokiBrainSelectionService', () => {
         ],
       ]);
 
-      const candidates = service.generateCandidates(
-        [table],
-        tableGaps,
-        5,
-        Duration.create(90)
-      );
+      const candidates = service.generateCandidates([table], tableGaps, 5, Duration.create(90));
 
       expect(candidates.length).toBe(0);
     });
   });
 });
-

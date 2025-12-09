@@ -51,7 +51,10 @@ export class KafkaEventBus implements EventBus {
     });
   }
 
-  async subscribe(eventType: string, handler: (event: DomainEvent) => Promise<void>): Promise<void> {
+  async subscribe(
+    eventType: string,
+    handler: (event: DomainEvent) => Promise<void>
+  ): Promise<void> {
     if (!this.handlers.has(eventType)) {
       this.handlers.set(eventType, []);
     }
@@ -79,6 +82,3 @@ export class KafkaEventBus implements EventBus {
     return `${this.topicPrefix}.${aggregateType.toLowerCase()}.events`;
   }
 }
-
-
-

@@ -73,6 +73,3 @@ export class Restaurant extends Entity<RestaurantProps> {
     };
   }
 }
-
-
-

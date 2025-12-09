@@ -69,7 +69,15 @@ export class Webhook {
     },
     id: string
   ): Webhook {
-    return new Webhook(id, props.url, props.events, props.secret, props.status, props.createdAt, props.updatedAt);
+    return new Webhook(
+      id,
+      props.url,
+      props.events,
+      props.secret,
+      props.status,
+      props.createdAt,
+      props.updatedAt
+    );
   }
 
   get id(): string {
@@ -138,4 +146,3 @@ export class Webhook {
     return this._events.includes(event);
   }
 }
-

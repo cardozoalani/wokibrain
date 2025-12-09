@@ -13,6 +13,3 @@ export interface ListBookingsOutput {
   date: string;
   bookings: BookingOutput[];
 }
-
-
-

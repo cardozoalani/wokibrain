@@ -24,6 +24,3 @@ describe('Timezone', () => {
     expect(zonedDate).toBeInstanceOf(Date);
   });
 });
-
-
-

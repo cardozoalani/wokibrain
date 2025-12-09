@@ -33,11 +33,5 @@ export interface CommandHandler<T extends Command, R> {
 
 export interface CommandBus {
   execute<T extends Command, R>(command: T): Promise<R>;
-  register<T extends Command, R>(
-    commandType: string,
-    handler: CommandHandler<T, R>
-  ): void;
+  register<T extends Command, R>(commandType: string, handler: CommandHandler<T, R>): void;
 }
-
-
-

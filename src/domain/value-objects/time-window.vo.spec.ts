@@ -50,4 +50,3 @@ describe('TimeWindow', () => {
     expect(window1.intersects(window4)).toBe(false); // 23:45-23:59 doesn't intersect 20:00-23:45 (touching at end)
   });
 });
-

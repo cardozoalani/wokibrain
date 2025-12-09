@@ -26,9 +26,7 @@ export class MigrationRunner {
     const migrations = await this.loadMigrations();
     const appliedVersions = await this.getAppliedVersions();
 
-    const pendingMigrations = migrations.filter(
-      (m) => !appliedVersions.includes(m.version)
-    );
+    const pendingMigrations = migrations.filter((m) => !appliedVersions.includes(m.version));
 
     if (pendingMigrations.length === 0) {
       console.log('✅ No pending migrations');
@@ -118,4 +116,3 @@ export class MigrationRunner {
     return records.map((r) => r.version);
   }
 }
-

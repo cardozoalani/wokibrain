@@ -55,4 +55,3 @@ describe('InMemoryQueryBus', () => {
     }).toThrow('Handler already registered');
   });
 });
-

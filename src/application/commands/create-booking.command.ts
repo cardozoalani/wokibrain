@@ -21,6 +21,3 @@ export class CreateBookingCommand extends BaseCommand {
     super('CreateBooking', metadata);
   }
 }
-
-
-

@@ -6,6 +6,3 @@ export interface TableRepository {
   findByIds(ids: string[]): Promise<Table[]>;
   save(table: Table): Promise<void>;
 }
-
-
-

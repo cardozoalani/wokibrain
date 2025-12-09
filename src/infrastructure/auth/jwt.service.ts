@@ -21,10 +21,7 @@ export class JWTService {
   private readonly accessTokenExpiry: string = '15m';
   private readonly refreshTokenExpiry: string = '7d';
 
-  constructor(
-    accessSecret: string,
-    refreshSecret: string
-  ) {
+  constructor(accessSecret: string, refreshSecret: string) {
     this.accessTokenSecret = accessSecret;
     this.refreshTokenSecret = refreshSecret;
   }
@@ -104,4 +101,3 @@ export class JWTService {
     return jwt.sign(payload, this.accessTokenSecret, accessTokenOptions);
   }
 }
-

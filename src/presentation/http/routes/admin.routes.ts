@@ -394,4 +394,3 @@ const adminRoutes: FastifyPluginAsync<AdminRoutesOptions> = async (fastify, opts
 };
 
 export default adminRoutes;
-

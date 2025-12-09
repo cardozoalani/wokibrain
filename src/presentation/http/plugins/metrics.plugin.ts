@@ -44,4 +44,3 @@ const metricsPlugin: FastifyPluginAsync<MetricsPluginOptions> = async (fastify, 
 };
 
 export default fp(metricsPlugin);
-

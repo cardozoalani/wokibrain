@@ -51,4 +51,3 @@ describe('MongoDBRestaurantRepository', () => {
     expect(found).toBeNull();
   });
 });
-

@@ -26,7 +26,7 @@ export class WokiBrainSelectionService {
 
     const sorted = [...candidates].sort((a, b) => {
       if (a.score !== b.score) return b.score - a.score;
-      
+
       if (a.kind !== b.kind) {
         return a.kind === 'single' ? 1 : -1;
       }
@@ -65,21 +65,11 @@ export class WokiBrainSelectionService {
 
     for (const table of tables) {
       const gaps = tableGaps.get(table.id) || [];
-      const singleCandidates = this.createSingleTableCandidates(
-        table,
-        gaps,
-        partySize,
-        duration
-      );
+      const singleCandidates = this.createSingleTableCandidates(table, gaps, partySize, duration);
       candidates.push(...singleCandidates);
     }
 
-    const comboCandidates = this.createComboCandidates(
-      tables,
-      tableGaps,
-      partySize,
-      duration
-    );
+    const comboCandidates = this.createComboCandidates(tables, tableGaps, partySize, duration);
     candidates.push(...comboCandidates);
 
     return candidates;
@@ -244,6 +234,3 @@ export class WokiBrainSelectionService {
     return result;
   }
 }
-
-
-

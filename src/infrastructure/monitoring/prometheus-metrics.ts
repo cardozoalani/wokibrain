@@ -125,6 +125,3 @@ export class PrometheusMetrics {
     return await this.registry.metrics();
   }
 }
-
-
-

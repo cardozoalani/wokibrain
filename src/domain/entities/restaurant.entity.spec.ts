@@ -17,10 +17,7 @@ describe('Restaurant', () => {
   });
 
   it('should create restaurant with service windows', () => {
-    const windows = [
-      TimeWindow.create('12:00', '16:00'),
-      TimeWindow.create('20:00', '23:45'),
-    ];
+    const windows = [TimeWindow.create('12:00', '16:00'), TimeWindow.create('20:00', '23:45')];
 
     const restaurant = Restaurant.create(
       'R1',
@@ -61,6 +58,3 @@ describe('Restaurant', () => {
     expect(restaurant.isWithinServiceWindow('23:59')).toBe(true);
   });
 });
-
-
-

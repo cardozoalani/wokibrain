@@ -38,11 +38,16 @@ export class MongoDBClient {
         options.tlsAllowInvalidHostnames = false;
         console.log(`TLS configured with CA file: ${this.config.MONGODB_TLS_CA_FILE}`);
       } catch (error) {
-        console.warn(`Warning: Could not read TLS CA file: ${this.config.MONGODB_TLS_CA_FILE}, using invalid certificate mode`, error);
+        console.warn(
+          `Warning: Could not read TLS CA file: ${this.config.MONGODB_TLS_CA_FILE}, using invalid certificate mode`,
+          error
+        );
         // Continue with invalid certificates allowed
       }
     } else {
-      console.warn('Warning: MONGODB_TLS_CA_FILE not set, allowing invalid certificates (not recommended for production)');
+      console.warn(
+        'Warning: MONGODB_TLS_CA_FILE not set, allowing invalid certificates (not recommended for production)'
+      );
     }
 
     this.client = new MongoClient(this.config.MONGODB_URI, options);
@@ -93,4 +98,3 @@ export class MongoDBClient {
       .createIndex({ key: 1 }, { unique: true, expireAfterSeconds: 86400 });
   }
 }
-

@@ -88,6 +88,3 @@ export class FeatureFlagService {
     return Math.abs(hash);
   }
 }
-
-
-

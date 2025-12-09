@@ -65,10 +65,7 @@ export class WebhookQueueService {
   /**
    * Enqueue a retry for a failed webhook delivery
    */
-  async enqueueRetry(
-    message: WebhookDeliveryMessage,
-    delayMs: number = 0
-  ): Promise<void> {
+  async enqueueRetry(message: WebhookDeliveryMessage, delayMs: number = 0): Promise<void> {
     const retryMessage: WebhookDeliveryMessage = {
       ...message,
       attempt: message.attempt + 1,
@@ -101,4 +98,3 @@ export class WebhookQueueService {
     }
   }
 }
-

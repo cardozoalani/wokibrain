@@ -71,6 +71,3 @@ export async function seedDatabase(client: MongoDBClient): Promise<void> {
 
   await bookingRepo.save(booking);
 }
-
-
-

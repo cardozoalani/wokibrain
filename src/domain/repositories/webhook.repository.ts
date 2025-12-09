@@ -9,6 +9,3 @@ export interface WebhookRepository {
   delete(id: string): Promise<void>;
   findActive(): Promise<Webhook[]>;
 }
-
-
-

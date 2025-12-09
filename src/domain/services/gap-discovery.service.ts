@@ -119,4 +119,3 @@ export class GapDiscoveryService {
     return gap.start >= windowStart && gap.end <= windowEnd && gap.start < gap.end;
   }
 }
-

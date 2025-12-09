@@ -23,7 +23,9 @@ export class CDNService {
     const command = new CreateInvalidationCommand({
       DistributionId: this.distributionId,
       InvalidationBatch: {
-        CallerReference: callerReference || `invalidation-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+        CallerReference:
+          callerReference ||
+          `invalidation-${Date.now()}-${Math.random().toString(36).substring(7)}`,
         Paths: {
           Quantity: paths.length,
           Items: paths,
@@ -45,11 +47,17 @@ export class CDNService {
   /**
    * Invalidate discovery cache for a specific restaurant/sector/date
    */
-  async invalidateDiscovery(restaurantId: string, sectorId?: string, date?: string): Promise<string> {
+  async invalidateDiscovery(
+    restaurantId: string,
+    sectorId?: string,
+    date?: string
+  ): Promise<string> {
     const paths: string[] = [];
 
     if (sectorId && date) {
-      paths.push(`/api/v1/woki/discover?restaurantId=${restaurantId}&sectorId=${sectorId}&date=${date}*`);
+      paths.push(
+        `/api/v1/woki/discover?restaurantId=${restaurantId}&sectorId=${sectorId}&date=${date}*`
+      );
       paths.push(`/api/v1/woki/discover?restaurantId=${restaurantId}&date=${date}*`);
     } else if (date) {
       paths.push(`/api/v1/woki/discover?restaurantId=${restaurantId}&date=${date}*`);
@@ -77,11 +85,17 @@ export class CDNService {
   /**
    * Invalidate booking-related cache
    */
-  async invalidateBookings(restaurantId: string, sectorId?: string, date?: string): Promise<string> {
+  async invalidateBookings(
+    restaurantId: string,
+    sectorId?: string,
+    date?: string
+  ): Promise<string> {
     const paths: string[] = [];
 
     if (sectorId && date) {
-      paths.push(`/api/v1/woki/bookings?restaurantId=${restaurantId}&sectorId=${sectorId}&date=${date}*`);
+      paths.push(
+        `/api/v1/woki/bookings?restaurantId=${restaurantId}&sectorId=${sectorId}&date=${date}*`
+      );
     } else if (date) {
       paths.push(`/api/v1/woki/bookings?restaurantId=${restaurantId}&date=${date}*`);
     } else {
@@ -91,6 +105,3 @@ export class CDNService {
     return this.invalidate({ paths });
   }
 }
-
-
-

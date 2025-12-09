@@ -11,13 +11,15 @@ describe('RBACService', () => {
   describe('hasPermission', () => {
     it('should return true for super admin with any permission', () => {
       expect(rbacService.hasPermission([Role.SUPER_ADMIN], Permission.BOOKING_CREATE)).toBe(true);
-      expect(rbacService.hasPermission([Role.SUPER_ADMIN], Permission.RESTAURANT_DELETE)).toBe(true);
+      expect(rbacService.hasPermission([Role.SUPER_ADMIN], Permission.RESTAURANT_DELETE)).toBe(
+        true
+      );
     });
 
     it('should return true for restaurant admin with booking permissions', () => {
-      expect(
-        rbacService.hasPermission([Role.RESTAURANT_ADMIN], Permission.BOOKING_CREATE)
-      ).toBe(true);
+      expect(rbacService.hasPermission([Role.RESTAURANT_ADMIN], Permission.BOOKING_CREATE)).toBe(
+        true
+      );
       expect(rbacService.hasPermission([Role.RESTAURANT_ADMIN], Permission.BOOKING_READ)).toBe(
         true
       );
@@ -31,7 +33,10 @@ describe('RBACService', () => {
 
     it('should return true if any role has permission', () => {
       expect(
-        rbacService.hasPermission([Role.RESTAURANT_STAFF, Role.RESTAURANT_MANAGER], Permission.BOOKING_DELETE)
+        rbacService.hasPermission(
+          [Role.RESTAURANT_STAFF, Role.RESTAURANT_MANAGER],
+          Permission.BOOKING_DELETE
+        )
       ).toBe(true);
     });
   });
@@ -85,6 +90,3 @@ describe('RBACService', () => {
     });
   });
 });
-
-
-

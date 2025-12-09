@@ -42,7 +42,7 @@ const docsRoutes: FastifyPluginAsync = async (fastify) => {
         fastify.log.error({ path: openApiPath }, 'OpenAPI spec not found');
         return reply.code(404).send({
           error: 'OpenAPI spec not found',
-          path: openApiPath
+          path: openApiPath,
         });
       }
 
@@ -52,7 +52,7 @@ const docsRoutes: FastifyPluginAsync = async (fastify) => {
       fastify.log.error(error, 'Error reading OpenAPI spec');
       return reply.code(500).send({
         error: 'Failed to read OpenAPI spec',
-        message: (error as Error).message
+        message: (error as Error).message,
       });
     }
   });
@@ -71,7 +71,7 @@ const docsRoutes: FastifyPluginAsync = async (fastify) => {
       fastify.log.error(error, 'Error parsing OpenAPI spec');
       return reply.code(500).send({
         error: 'Failed to parse OpenAPI spec',
-        message: (error as Error).message
+        message: (error as Error).message,
       });
     }
   });
@@ -104,7 +104,7 @@ const docsRoutes: FastifyPluginAsync = async (fastify) => {
 
     return reply.code(404).send({
       error: 'WebSocket documentation not found',
-      message: 'Run "npm run docs:websockets" to generate documentation'
+      message: 'Run "npm run docs:websockets" to generate documentation',
     });
   });
 
@@ -135,11 +135,10 @@ const docsRoutes: FastifyPluginAsync = async (fastify) => {
       fastify.log.error(error, 'Error parsing AsyncAPI spec');
       return reply.code(500).send({
         error: 'Failed to parse AsyncAPI spec',
-        message: (error as Error).message
+        message: (error as Error).message,
       });
     }
   });
 };
 
 export default docsRoutes;
-

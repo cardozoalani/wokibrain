@@ -179,6 +179,3 @@ describe('DiscoverSeatsUseCase', () => {
     await expect(useCase.execute(input)).rejects.toThrow(OutsideServiceWindowError);
   });
 });
-
-
-

@@ -25,6 +25,3 @@ export class Timezone extends ValueObject<string> {
     return new Date(str);
   }
 }
-
-
-

@@ -5,11 +5,7 @@ export interface CacheService {
   set(key: string, value: unknown, ttlSeconds?: number): Promise<void>;
   del(key: string): Promise<void>;
   invalidatePattern(pattern: string): Promise<void>;
-  remember<T>(
-    key: string,
-    fn: () => Promise<T>,
-    ttlSeconds?: number
-  ): Promise<T>;
+  remember<T>(key: string, fn: () => Promise<T>, ttlSeconds?: number): Promise<T>;
 }
 
 export class RedisCacheService implements CacheService {
@@ -43,11 +39,7 @@ export class RedisCacheService implements CacheService {
     }
   }
 
-  async remember<T>(
-    key: string,
-    fn: () => Promise<T>,
-    ttlSeconds?: number
-  ): Promise<T> {
+  async remember<T>(key: string, fn: () => Promise<T>, ttlSeconds?: number): Promise<T> {
     const cached = await this.get<T>(key);
 
     if (cached !== null) {
@@ -64,6 +56,3 @@ export class RedisCacheService implements CacheService {
     return `${this.cachePrefix}${key}`;
   }
 }
-
-
-

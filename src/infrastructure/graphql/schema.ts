@@ -175,6 +175,3 @@ export const typeDefs = `#graphql
     end: String!
   }
 `;
-
-
-

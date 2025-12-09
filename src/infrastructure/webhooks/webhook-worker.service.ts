@@ -32,15 +32,19 @@ export class WebhookWorkerService {
 
     await this.kafka.connect();
 
-    await this.kafka.subscribe([this.topic], async (payload) => {
-      try {
-        const message = JSON.parse(payload.message.value!.toString()) as WebhookDeliveryMessage;
-        await this.processWebhookDelivery(message);
-      } catch (error) {
-        this.logger.error('Error processing webhook delivery message', error as Error);
-        // Don't throw - let Kafka handle retries at the consumer level
-      }
-    }, this.groupId);
+    await this.kafka.subscribe(
+      [this.topic],
+      async (payload) => {
+        try {
+          const message = JSON.parse(payload.message.value!.toString()) as WebhookDeliveryMessage;
+          await this.processWebhookDelivery(message);
+        } catch (error) {
+          this.logger.error('Error processing webhook delivery message', error as Error);
+          // Don't throw - let Kafka handle retries at the consumer level
+        }
+      },
+      this.groupId
+    );
 
     this.isConsuming = true;
     this.logger.info('Webhook worker started', {
@@ -140,4 +144,3 @@ export class WebhookWorkerService {
     }
   }
 }
-

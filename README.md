@@ -1,4 +1,4 @@
-# WokiBrain - Technical Challenge
+# WokiBrain
 
 [![Production](https://img.shields.io/badge/Production-Live-brightgreen)](https://wokibrain.grgcrew.com/api/v1)
 [![Architecture](https://img.shields.io/badge/Architecture-DDD%20%2B%20Event%20Sourcing%20%2B%20CQRS-blue)]()
@@ -15,7 +15,7 @@
 
 ## 🎯 Overview
 
-Technical challenge implementation for a restaurant booking system.
+Enterprise-grade restaurant booking system with intelligent table allocation.
 
 **Status**: ✅ **Deployed to Production (AWS ECS)**
 
@@ -817,6 +817,7 @@ e2e/
 ### Test Configuration
 
 Tests are configured in:
+
 - `vitest.config.ts` - Main Vitest configuration for unit/integration tests
   - Coverage thresholds: 80% lines, 80% functions, 75% branches, 80% statements
   - Uses V8 coverage provider
@@ -830,6 +831,7 @@ Tests are configured in:
 ### Coverage Reports
 
 After running `npm run test:coverage`, coverage reports are generated in:
+
 - **HTML Report**: `coverage/index.html` (open in browser for interactive view)
 - **LCOV Report**: `coverage/lcov.info` (for CI/CD integration)
 - **JSON Report**: `coverage/coverage-final.json` (for programmatic access)
@@ -858,6 +860,7 @@ describe('CapacityRange', () => {
 ### CI/CD Integration
 
 Tests run automatically in CI/CD pipeline:
+
 - All tests run on every push and pull request
 - Coverage reports are generated and tracked
 - E2E tests run in isolated test environment
@@ -1580,6 +1583,7 @@ kubectl create secret generic grafana-secrets \
 Grafana is deployed and available for interviewers to access monitoring dashboards.
 
 **Access Grafana**:
+
 - **URL**: https://grafana.wokibrain.grgcrew.com
 - **Username**: `admin`
 - **Password**: `1234567890`
@@ -1694,13 +1698,13 @@ All scripts are portable and work on any machine. They automatically detect thei
 
 ## 🤝 Contributing
 
-This is a technical challenge implementation.
+Contributions are welcome! Please open an issue or submit a pull request.
 
 ---
 
 ## 📧 Contact
 
-**Technical Challenge Support**: cardozoalani@hotmail.com
+**Support**: cardozoalani@hotmail.com
 
 ---
 

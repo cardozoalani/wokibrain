@@ -21,6 +21,3 @@ describe('Sector', () => {
     expect(json.updatedAt).toBeDefined();
   });
 });
-
-
-

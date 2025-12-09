@@ -46,12 +46,6 @@ export class CapacityRange extends ValueObject<CapacityRangeProps> {
   }
 
   merge(other: CapacityRange): CapacityRange {
-    return CapacityRange.create(
-      this._value.min + other.min,
-      this._value.max + other.max
-    );
+    return CapacityRange.create(this._value.min + other.min, this._value.max + other.max);
   }
 }
-
-
-

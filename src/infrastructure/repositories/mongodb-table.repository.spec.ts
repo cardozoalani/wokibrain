@@ -69,4 +69,3 @@ describe('MongoDBTableRepository', () => {
     expect(tables.some((t) => t.id === 'T3')).toBe(true);
   });
 });
-

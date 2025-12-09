@@ -48,6 +48,3 @@ export class MongoDBSectorRepository implements SectorRepository {
     };
   }
 }
-
-
-

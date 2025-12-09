@@ -44,4 +44,3 @@ export function validateEnv(): Env {
 
   return parsed.data;
 }
-

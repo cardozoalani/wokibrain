@@ -4,6 +4,3 @@ export interface Logger {
   warn(message: string, context?: Record<string, unknown>): void;
   debug(message: string, context?: Record<string, unknown>): void;
 }
-
-
-

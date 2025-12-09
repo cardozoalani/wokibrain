@@ -67,7 +67,10 @@ export class WebSocketServer {
     });
   }
 
-  private handleSubscribe(socket: Socket, data: { restaurantId?: string; sectorId?: string }): void {
+  private handleSubscribe(
+    socket: Socket,
+    data: { restaurantId?: string; sectorId?: string }
+  ): void {
     if (data.restaurantId) {
       socket.join(`restaurant:${data.restaurantId}`);
       this.logger.debug('Client subscribed to restaurant', {
@@ -87,7 +90,10 @@ export class WebSocketServer {
     socket.emit('subscribed', { success: true, ...data });
   }
 
-  private handleUnsubscribe(socket: Socket, data: { restaurantId?: string; sectorId?: string }): void {
+  private handleUnsubscribe(
+    socket: Socket,
+    data: { restaurantId?: string; sectorId?: string }
+  ): void {
     if (data.restaurantId) {
       socket.leave(`restaurant:${data.restaurantId}`);
     }
@@ -145,6 +151,3 @@ export class WebSocketServer {
     });
   }
 }
-
-
-

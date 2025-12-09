@@ -33,12 +33,7 @@ export class LockService {
     }
   }
 
-  generateLockKey(
-    restaurantId: string,
-    sectorId: string,
-    tableIds: string[],
-    start: Date
-  ): string {
+  generateLockKey(restaurantId: string, sectorId: string, tableIds: string[], start: Date): string {
     // Validate input parameters
     if (!restaurantId || typeof restaurantId !== 'string') {
       throw new Error('Restaurant ID must be a non-empty string');
@@ -58,6 +53,3 @@ export class LockService {
     return `${restaurantId}|${sectorId}|${sortedTables}|${timestamp}`;
   }
 }
-
-
-

@@ -36,14 +36,7 @@ export class MongoDBRestaurantRepository implements RestaurantRepository {
     const timezone = Timezone.create(doc.timezone);
     const windows = doc.windows.map((w) => TimeWindow.create(w.start, w.end));
 
-    return Restaurant.create(
-      doc.id,
-      doc.name,
-      timezone,
-      windows,
-      doc.createdAt,
-      doc.updatedAt
-    );
+    return Restaurant.create(doc.id, doc.name, timezone, windows, doc.createdAt, doc.updatedAt);
   }
 
   private toDocument(restaurant: Restaurant): RestaurantDocument {
@@ -57,6 +50,3 @@ export class MongoDBRestaurantRepository implements RestaurantRepository {
     };
   }
 }
-
-
-

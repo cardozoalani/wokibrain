@@ -34,7 +34,10 @@ describe('MongoDBEventStore', () => {
       // Ignore errors when closing client (may already be closed)
       // This can happen if tests run in parallel or if cleanup happens during async operations
       // These are expected and don't affect test results
-      if (error?.name !== 'MongoClientClosedError' && !error?.errmsg?.includes('client was closed')) {
+      if (
+        error?.name !== 'MongoClientClosedError' &&
+        !error?.errmsg?.includes('client was closed')
+      ) {
         // Only log unexpected errors
         console.warn('Unexpected error closing MongoDB client:', error?.message);
       }
@@ -85,9 +88,9 @@ describe('MongoDBEventStore', () => {
         reason: 'Cancelled by guest',
       });
 
-      await expect(
-        eventStore.appendEvents(aggregateId, 'Booking', [event2], 0)
-      ).rejects.toThrow('Concurrency conflict');
+      await expect(eventStore.appendEvents(aggregateId, 'Booking', [event2], 0)).rejects.toThrow(
+        'Concurrency conflict'
+      );
     });
 
     it('should append multiple events in order', async () => {
@@ -276,4 +279,3 @@ describe('MongoDBEventStore', () => {
     });
   });
 });
-

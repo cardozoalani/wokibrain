@@ -14,6 +14,3 @@ export class CancelBookingCommand extends BaseCommand {
     super('CancelBooking', metadata);
   }
 }
-
-
-

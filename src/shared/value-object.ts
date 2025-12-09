@@ -16,6 +16,3 @@ export abstract class ValueObject<T> {
     return JSON.stringify(this._value) === JSON.stringify(other._value);
   }
 }
-
-
-

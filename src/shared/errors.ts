@@ -11,7 +11,10 @@ export class DomainError extends Error {
 }
 
 export class ValidationError extends DomainError {
-  constructor(message: string, public readonly field?: string) {
+  constructor(
+    message: string,
+    public readonly field?: string
+  ) {
     super(message, 'VALIDATION_ERROR', 400);
     this.name = 'ValidationError';
   }
@@ -49,6 +52,3 @@ export class OutsideServiceWindowError extends BusinessRuleError {
     super(message, 'OUTSIDE_SERVICE_WINDOW');
   }
 }
-
-
-

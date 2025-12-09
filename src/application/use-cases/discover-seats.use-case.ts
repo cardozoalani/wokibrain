@@ -8,7 +8,11 @@ import { Duration } from '@domain/value-objects/duration.vo';
 import { TimeWindow } from '@domain/value-objects/time-window.vo';
 import { NotFoundError, OutsideServiceWindowError, NoCapacityError } from '@shared/errors';
 import { Logger } from '../ports/logger.port';
-import { DiscoverSeatsInput, DiscoverSeatsOutput, CandidateOutput } from '../dtos/discover-seats.dto';
+import {
+  DiscoverSeatsInput,
+  DiscoverSeatsOutput,
+  CandidateOutput,
+} from '../dtos/discover-seats.dto';
 
 export class DiscoverSeatsUseCase {
   constructor(
@@ -89,13 +93,15 @@ export class DiscoverSeatsUseCase {
     const output: DiscoverSeatsOutput = {
       slotMinutes: 15,
       durationMinutes: input.duration,
-      candidates: sortedCandidates.map((c): CandidateOutput => ({
-        kind: c.kind,
-        tableIds: c.tableIds,
-        start: c.start.toISOString(),
-        end: c.end.toISOString(),
-        score: c.score,
-      })),
+      candidates: sortedCandidates.map(
+        (c): CandidateOutput => ({
+          kind: c.kind,
+          tableIds: c.tableIds,
+          start: c.start.toISOString(),
+          end: c.end.toISOString(),
+          score: c.score,
+        })
+      ),
     };
 
     this.logger.info('Seats discovered', {
@@ -109,6 +115,3 @@ export class DiscoverSeatsUseCase {
     return output;
   }
 }
-
-
-

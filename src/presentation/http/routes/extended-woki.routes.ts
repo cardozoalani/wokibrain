@@ -7,10 +7,7 @@ interface ExtendedWokiRoutesOptions {
   deleteBookingUseCase: DeleteBookingUseCase;
 }
 
-const extendedWokiRoutes: FastifyPluginAsync<ExtendedWokiRoutesOptions> = async (
-  fastify,
-  opts
-) => {
+const extendedWokiRoutes: FastifyPluginAsync<ExtendedWokiRoutesOptions> = async (fastify, opts) => {
   fastify.get(
     '/bookings/:bookingId',
     {
@@ -83,6 +80,3 @@ const extendedWokiRoutes: FastifyPluginAsync<ExtendedWokiRoutesOptions> = async 
 };
 
 export default extendedWokiRoutes;
-
-
-

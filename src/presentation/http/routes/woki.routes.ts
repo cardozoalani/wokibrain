@@ -164,6 +164,3 @@ const wokiRoutes: FastifyPluginAsync<WokiRoutesOptions> = async (fastify, opts) 
 };
 
 export default wokiRoutes;
-
-
-

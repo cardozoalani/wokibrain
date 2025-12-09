@@ -104,17 +104,10 @@ export class RedisClient {
   }
 
   async disconnect(): Promise<void> {
-    await Promise.all([
-      this.client.quit(),
-      this.subscriber.quit(),
-      this.publisher.quit(),
-    ]);
+    await Promise.all([this.client.quit(), this.subscriber.quit(), this.publisher.quit()]);
   }
 
   getClient(): Redis {
     return this.client;
   }
 }
-
-
-

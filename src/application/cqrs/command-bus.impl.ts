@@ -30,10 +30,7 @@ export class InMemoryCommandBus implements CommandBus {
     }
   }
 
-  register<T extends Command, R>(
-    commandType: string,
-    handler: CommandHandler<T, R>
-  ): void {
+  register<T extends Command, R>(commandType: string, handler: CommandHandler<T, R>): void {
     if (this.handlers.has(commandType)) {
       throw new Error(`Handler already registered for command: ${commandType}`);
     }
@@ -42,6 +39,3 @@ export class InMemoryCommandBus implements CommandBus {
     this.logger.info('Command handler registered', { commandType });
   }
 }
-
-
-

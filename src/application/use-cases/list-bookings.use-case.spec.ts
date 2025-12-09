@@ -122,6 +122,3 @@ describe('ListBookingsUseCase', () => {
     await expect(useCase.execute(input)).rejects.toThrow(NotFoundError);
   });
 });
-
-
-

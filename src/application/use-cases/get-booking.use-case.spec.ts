@@ -59,6 +59,3 @@ describe('GetBookingUseCase', () => {
     await expect(useCase.execute('NONEXISTENT')).rejects.toThrow(NotFoundError);
   });
 });
-
-
-

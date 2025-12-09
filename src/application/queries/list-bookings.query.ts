@@ -14,6 +14,3 @@ export class ListBookingsQuery extends BaseQuery {
     super('ListBookings');
   }
 }
-
-
-

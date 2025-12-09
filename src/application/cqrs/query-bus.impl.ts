@@ -39,6 +39,3 @@ export class InMemoryQueryBus implements QueryBus {
     this.logger.debug('Query handler registered', { queryType });
   }
 }
-
-
-

@@ -38,6 +38,3 @@ describe('Duration', () => {
     expect(result.getTime() - date.getTime()).toBe(90 * 60 * 1000);
   });
 });
-
-
-

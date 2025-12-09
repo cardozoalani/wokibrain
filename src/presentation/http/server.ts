@@ -368,7 +368,9 @@ export class FastifyServer {
           });
         }
       } else {
-        this.logger.debug('EventBus or WebSocket server not available, WebSocket worker will not start');
+        this.logger.debug(
+          'EventBus or WebSocket server not available, WebSocket worker will not start'
+        );
       }
 
       this.logger.info('WebSocket server initialized', {
@@ -455,7 +457,11 @@ export class FastifyServer {
     // Initialize CQRS Projection Worker
     try {
       const bookingProjection = new MongoDBBookingProjection(db, eventStore);
-      this.cqrsWorker = new CQRSProjectionWorkerService(this.eventBus, bookingProjection, this.logger);
+      this.cqrsWorker = new CQRSProjectionWorkerService(
+        this.eventBus,
+        bookingProjection,
+        this.logger
+      );
       await this.cqrsWorker.start();
       this.logger.info('CQRS projection worker started');
     } catch (error) {
@@ -527,4 +533,3 @@ export class FastifyServer {
     return this.app;
   }
 }
-

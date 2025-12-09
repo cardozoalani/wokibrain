@@ -1,11 +1,6 @@
 import { Collection, Db } from 'mongodb';
 import { DomainEvent } from '@domain/events/domain-event';
-import {
-  EventStore,
-  EventStream,
-  EventStoreOptions,
-  Snapshot,
-} from './event-store.interface';
+import { EventStore, EventStream, EventStoreOptions, Snapshot } from './event-store.interface';
 
 interface EventDocument {
   eventId: string;
@@ -116,7 +111,10 @@ export class MongoDBEventStore implements EventStore {
     };
   }
 
-  async getAllEvents(aggregateType?: string, options: EventStoreOptions = {}): Promise<DomainEvent[]> {
+  async getAllEvents(
+    aggregateType?: string,
+    options: EventStoreOptions = {}
+  ): Promise<DomainEvent[]> {
     const query: Record<string, unknown> = aggregateType ? { aggregateType } : {};
 
     const cursor = this.eventsCollection
@@ -193,4 +191,3 @@ export class MongoDBEventStore implements EventStore {
     };
   }
 }
-
