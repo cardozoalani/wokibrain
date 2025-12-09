@@ -120,11 +120,14 @@ export class GrpcServer {
         limit: call.request.limit,
       });
 
-      const result = (await this.queryBus.execute(query));
+      const result = (await this.queryBus.execute(query)) as {
+        bookings?: any[];
+        date?: string;
+      };
       const bookings = Array.isArray(result?.bookings) ? result.bookings : [];
       callback(null, {
         bookings: bookings.map((b: any) => this.toGrpcBooking(b)),
-        total: result.total ?? bookings.length,
+        total: bookings.length,
         page: call.request.page || 1,
         limit: call.request.limit || 50,
       });
