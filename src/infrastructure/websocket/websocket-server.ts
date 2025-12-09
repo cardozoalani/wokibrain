@@ -60,7 +60,7 @@ export class WebSocketServer {
       });
 
       socket.on('error', (error) => {
-        this.logger.error('WebSocket error', error as Error, {
+        this.logger.error('WebSocket error', error, {
           socketId: socket.id,
         });
       });

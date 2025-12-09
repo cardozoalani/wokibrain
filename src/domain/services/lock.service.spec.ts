@@ -19,7 +19,7 @@ describe('LockService', () => {
     });
 
     it('should prevent concurrent execution with same key', async () => {
-      let executionOrder: string[] = [];
+      const executionOrder: string[] = [];
       const fn1 = vi.fn().mockImplementation(
         () =>
           new Promise((resolve) => {
