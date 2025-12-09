@@ -731,22 +731,136 @@ See the [OpenAPI documentation](https://wokibrain.grgcrew.com/api/v1/docs) for c
 
 ## 🧪 Testing
 
-**157 tests passing** with **100% coverage** of critical components:
+The project uses **Vitest** as the testing framework, providing fast unit tests, integration tests, and end-to-end tests with comprehensive coverage.
+
+### Testing Framework
+
+- **Vitest** - Fast Vite-native unit test framework
+- **Playwright** - End-to-end testing for API and WebSocket endpoints
+- **Coverage**: 100% coverage of critical components with 157 passing tests
+
+### Running Tests
+
+#### Unit and Integration Tests
 
 ```bash
-npm test              # Run all tests
-npm run test:coverage # With coverage report
-npm run test:e2e      # End-to-end tests
+# Run all tests once
+npm test
+
+# Run tests in watch mode (for development)
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run specific test file
+npm test -- src/domain/services/gap-discovery.service.spec.ts
+
+# Run tests matching a pattern
+npm test -- --grep "GapDiscoveryService"
 ```
 
-**Test Coverage:**
+#### End-to-End Tests
 
-- ✅ Event Store (12 tests)
-- ✅ Repositories (15 tests)
-- ✅ Use Cases (15 tests)
-- ✅ Domain Logic (60+ tests)
-- ✅ Infrastructure (60+ tests)
-- ✅ E2E Tests (8 scenarios)
+```bash
+# Run E2E tests (requires API to be running)
+npm run test:e2e
+
+# Run E2E tests in watch mode
+npm run test:e2e -- --watch
+```
+
+**Note**: E2E tests require the API to be running. Start the API with `npm run dev` or `./RUN_API.sh` before running E2E tests.
+
+### Test Structure
+
+Tests are organized following the same structure as the source code:
+
+```
+src/
+├── domain/
+│   ├── entities/
+│   │   └── booking.entity.spec.ts
+│   ├── services/
+│   │   ├── gap-discovery.service.spec.ts
+│   │   └── wokibrain-selection.service.spec.ts
+│   └── value-objects/
+│       └── time-interval.vo.spec.ts
+├── application/
+│   └── use-cases/
+│       └── create-booking.use-case.spec.ts
+├── infrastructure/
+│   ├── repositories/
+│   │   └── mongodb-booking.repository.spec.ts
+│   └── event-store/
+│       └── mongodb-event-store.spec.ts
+└── presentation/
+    └── http/
+        └── plugins/
+            └── error-handler.plugin.spec.ts
+
+e2e/
+└── api.spec.ts  # End-to-end API tests
+```
+
+### Test Coverage
+
+**157 tests passing** with **100% coverage** of critical components:
+
+- ✅ **Event Store** (12 tests) - MongoDB event store implementation
+- ✅ **Repositories** (15 tests) - MongoDB repository implementations
+- ✅ **Use Cases** (15 tests) - Application use cases
+- ✅ **Domain Logic** (60+ tests) - Entities, value objects, and domain services
+- ✅ **Infrastructure** (60+ tests) - Infrastructure layer components
+- ✅ **E2E Tests** (8 scenarios) - End-to-end API and WebSocket tests
+
+### Test Configuration
+
+Tests are configured in:
+- `vitest.config.ts` - Main Vitest configuration for unit/integration tests
+  - Coverage thresholds: 80% lines, 80% functions, 75% branches, 80% statements
+  - Uses V8 coverage provider
+  - Supports parallel test execution
+- `playwright.config.ts` - E2E test configuration with Playwright
+  - Automatically starts dev server if not running
+  - Generates HTML and JSON reports
+  - Retries failed tests in CI
+- `vitest.setup.ts` - Test setup and global test utilities
+
+### Coverage Reports
+
+After running `npm run test:coverage`, coverage reports are generated in:
+- **HTML Report**: `coverage/index.html` (open in browser for interactive view)
+- **LCOV Report**: `coverage/lcov.info` (for CI/CD integration)
+- **JSON Report**: `coverage/coverage-final.json` (for programmatic access)
+
+### Writing Tests
+
+Example test structure:
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { CapacityRange } from './capacity-range.vo';
+
+describe('CapacityRange', () => {
+  it('should create a valid capacity range', () => {
+    const capacity = CapacityRange.create(2, 4);
+    expect(capacity.min).toBe(2);
+    expect(capacity.max).toBe(4);
+  });
+
+  it('should throw error for invalid capacity', () => {
+    expect(() => CapacityRange.create(-1, 4)).toThrow();
+  });
+});
+```
+
+### CI/CD Integration
+
+Tests run automatically in CI/CD pipeline:
+- All tests run on every push and pull request
+- Coverage reports are generated and tracked
+- E2E tests run in isolated test environment
 
 ---
 
