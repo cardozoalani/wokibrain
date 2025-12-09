@@ -1,16 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MongoClient, Db } from 'mongodb';
 import { MongoDBEventStore } from './mongodb-event-store';
 import { BookingCreatedEvent, BookingCancelledEvent } from '@domain/events/booking-events';
 
 describe('MongoDBEventStore', () => {
+  let mongoServer: MongoMemoryServer;
   let client: MongoClient;
   let db: Db;
   let eventStore: MongoDBEventStore;
-  const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wokibrain_test';
 
   beforeEach(async () => {
-    client = new MongoClient(MONGODB_URI);
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    client = new MongoClient(uri);
     await client.connect();
     db = client.db('wokibrain_test');
     eventStore = new MongoDBEventStore(db);
@@ -23,24 +26,15 @@ describe('MongoDBEventStore', () => {
   afterEach(async () => {
     try {
       if (client) {
-        // Wait a bit for any pending operations to complete
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        // Check if client is still connected before closing
-        if (client.topology && client.topology.isConnected()) {
-          await client.close();
-        }
+        await client.close();
+      }
+      if (mongoServer) {
+        await mongoServer.stop();
       }
     } catch (error: any) {
       // Ignore errors when closing client (may already be closed)
       // This can happen if tests run in parallel or if cleanup happens during async operations
       // These are expected and don't affect test results
-      if (
-        error?.name !== 'MongoClientClosedError' &&
-        !error?.errmsg?.includes('client was closed')
-      ) {
-        // Only log unexpected errors
-        console.warn('Unexpected error closing MongoDB client:', error?.message);
-      }
     }
   });
 

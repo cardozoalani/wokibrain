@@ -1,18 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MongoClient, Db } from 'mongodb';
 import { MongoDBBookingProjection } from './mongodb-booking-projection';
 import { BookingCreatedEvent, BookingCancelledEvent } from '@domain/events/booking-events';
 import { EventStore } from '../event-store/event-store.interface';
 
 describe('MongoDBBookingProjection', () => {
+  let mongoServer: MongoMemoryServer;
   let client: MongoClient;
   let db: Db;
   let projection: MongoDBBookingProjection;
   let mockEventStore: EventStore;
-  const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wokibrain_test';
 
   beforeEach(async () => {
-    client = new MongoClient(MONGODB_URI);
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    client = new MongoClient(uri);
     await client.connect();
     db = client.db('wokibrain_test');
 
@@ -27,7 +30,10 @@ describe('MongoDBBookingProjection', () => {
   afterEach(async () => {
     try {
       if (client) {
-        await client.close(true);
+        await client.close();
+      }
+      if (mongoServer) {
+        await mongoServer.stop();
       }
     } catch (error) {
       // Ignore errors when closing client (may already be closed)
@@ -110,7 +116,7 @@ describe('MongoDBBookingProjection', () => {
         { userId: 'U1' }
       );
 
-      let projectedEvents: any[] = [];
+      const projectedEvents: any[] = [];
       (mockEventStore.replay as any).mockImplementation(
         async (_type: string, _version: number, handler: (event: any) => Promise<void>) => {
           await handler(event1);
