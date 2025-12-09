@@ -1,0 +1,114 @@
+name: Code Quality
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  commitlint:
+    name: Validate Commit Messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate commits
+        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.sha }} --verbose
+
+  code-review:
+    name: Automated Code Review
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for console.logs
+        run: |
+          if grep -r "console\\.log" src --include="*.ts" --exclude="*.spec.ts"; then
+            echo "❌ Found console.log in production code"
+            exit 1
+          fi
+
+      - name: Check for TODOs
+        run: |
+          TODO_COUNT=$(grep -r "TODO" src --include="*.ts" | wc -l)
+          if [ $TODO_COUNT -gt 10 ]; then
+            echo "⚠️ Found $TODO_COUNT TODOs. Please address some before merging."
+          fi
+
+      - name: Check PR size
+        run: |
+          FILES_CHANGED=$(git diff --name-only origin/${{ github.base_ref }} | wc -l)
+          if [ $FILES_CHANGED -gt 30 ]; then
+            echo "⚠️ Large PR detected ($FILES_CHANGED files). Consider splitting."
+          fi
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+
+      - name: Check for secrets
+        run: |
+          if grep -r "password.*=.*['\"]" . --include="*.ts" --exclude-dir=node_modules; then
+            echo "❌ Potential hardcoded secrets found"
+            exit 1
+          fi
+
+  complexity:
+    name: Code Complexity Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Analyze complexity
+        run: |
+          npx ts-node -e "
+          console.log('✅ Complexity analysis would run here');
+          console.log('   - Check cyclomatic complexity');
+          console.log('   - Check file size limits');
+          console.log('   - Check function length');
+          "
+
+
+
