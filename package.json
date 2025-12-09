@@ -45,8 +45,7 @@
     "profile:flame": "clinic flame -- node dist/index.js",
     "monitoring:dashboard": "open http://localhost:9464/metrics",
     "commit": "cz",
-    "postinstall": "node -e \"try { const isCI = require('is-ci'); if (!isCI && require.resolve('husky')) require('husky').install(); } catch(e) {}\"",
-    "prepare": "node -e \"try { const isCI = require('is-ci'); if (!isCI && require.resolve('husky')) require('husky').install(); } catch(e) {}\""
+    "prepare": "husky"
   },
   "keywords": [
     "restaurant",
