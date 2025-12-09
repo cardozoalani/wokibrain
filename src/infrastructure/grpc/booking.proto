@@ -1,0 +1,111 @@
+syntax = "proto3";
+
+package wokibrain;
+
+service BookingService {
+  rpc CreateBooking(CreateBookingRequest) returns (BookingResponse);
+  rpc GetBooking(GetBookingRequest) returns (BookingResponse);
+  rpc CancelBooking(CancelBookingRequest) returns (CancelBookingResponse);
+  rpc ListBookings(ListBookingsRequest) returns (ListBookingsResponse);
+  rpc DiscoverSeats(DiscoverSeatsRequest) returns (DiscoverSeatsResponse);
+  rpc StreamBookings(StreamBookingsRequest) returns (stream BookingEvent);
+}
+
+message CreateBookingRequest {
+  string restaurant_id = 1;
+  string sector_id = 2;
+  int32 party_size = 3;
+  int32 duration_minutes = 4;
+  string date = 5;
+  optional string window_start = 6;
+  optional string window_end = 7;
+  optional string guest_name = 8;
+  optional string guest_email = 9;
+  optional string guest_phone = 10;
+}
+
+message GetBookingRequest {
+  string booking_id = 1;
+}
+
+message CancelBookingRequest {
+  string booking_id = 1;
+  optional string reason = 2;
+}
+
+message CancelBookingResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ListBookingsRequest {
+  string restaurant_id = 1;
+  string sector_id = 2;
+  string date = 3;
+  optional string status = 4;
+  optional int32 page = 5;
+  optional int32 limit = 6;
+}
+
+message ListBookingsResponse {
+  repeated BookingResponse bookings = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message DiscoverSeatsRequest {
+  string restaurant_id = 1;
+  string sector_id = 2;
+  string date = 3;
+  int32 party_size = 4;
+  int32 duration = 5;
+  optional string window_start = 6;
+  optional string window_end = 7;
+  optional int32 limit = 8;
+}
+
+message DiscoverSeatsResponse {
+  int32 slot_minutes = 1;
+  int32 duration_minutes = 2;
+  repeated Candidate candidates = 3;
+}
+
+message Candidate {
+  string kind = 1;
+  repeated string table_ids = 2;
+  string start = 3;
+  string end = 4;
+  double score = 5;
+}
+
+message BookingResponse {
+  string id = 1;
+  string restaurant_id = 2;
+  string sector_id = 3;
+  repeated string table_ids = 4;
+  int32 party_size = 5;
+  string start = 6;
+  string end = 7;
+  int32 duration_minutes = 8;
+  string status = 9;
+  optional string guest_name = 10;
+  optional string guest_email = 11;
+  optional string guest_phone = 12;
+  string created_at = 13;
+  string updated_at = 14;
+}
+
+message StreamBookingsRequest {
+  string restaurant_id = 1;
+  optional string sector_id = 2;
+}
+
+message BookingEvent {
+  string event_type = 1;
+  BookingResponse booking = 2;
+  string occurred_at = 3;
+}
+
+
+
