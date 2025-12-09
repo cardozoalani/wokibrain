@@ -121,7 +121,7 @@ export class GrpcServer {
         limit: call.request.limit,
       });
 
-      const result = (await this.queryBus.execute(query)) as ListBookingsOutput;
+      const result = await this.queryBus.execute<ListBookingsQuery, ListBookingsOutput>(query);
       const bookings = Array.isArray(result?.bookings) ? result.bookings : [];
       callback(null, {
         bookings: bookings.map((b: any) => this.toGrpcBooking(b)),
