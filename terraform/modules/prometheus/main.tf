@@ -1,0 +1,384 @@
+# ECS Task Definition for Prometheus
+resource "aws_ecs_task_definition" "prometheus" {
+  family                   = "${var.environment}-wokibrain-prometheus"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "1024"
+  memory                   = "2048"
+  execution_role_arn       = var.ecs_execution_role_arn
+  task_role_arn            = var.ecs_task_role_arn
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
+
+  container_definitions = jsonencode([
+    {
+      name  = "prometheus"
+      image = "${var.ecr_repository_url_prometheus}:v2.48.0"
+
+      portMappings = [
+        {
+          containerPort = 9090
+          protocol      = "tcp"
+        }
+      ]
+
+      entryPoint = ["/bin/sh", "-c"]
+      command = [
+        <<-EOT
+          # Create Prometheus configuration file
+          cat > /etc/prometheus/prometheus.yml <<'CONFIG'
+          global:
+            scrape_interval: 15s
+            evaluation_interval: 15s
+            external_labels:
+              cluster: 'wokibrain'
+              environment: 'production'
+
+          scrape_configs:
+            - job_name: 'prometheus'
+              static_configs:
+                - targets: ['localhost:9090']
+
+            - job_name: 'wokibrain-api'
+              static_configs:
+                - targets: ['${var.alb_dns_name}:9464']
+                  labels:
+                    job: 'wokibrain-api'
+                    environment: 'production'
+              metrics_path: '/metrics'
+              scheme: 'http'
+          CONFIG
+          
+          # Start Prometheus
+          /bin/prometheus \
+            --config.file=/etc/prometheus/prometheus.yml \
+            --storage.tsdb.path=/prometheus \
+            --storage.tsdb.retention.time=30d \
+            --web.console.libraries=/usr/share/prometheus/console_libraries \
+            --web.console.templates=/usr/share/prometheus/consoles \
+            --web.enable-lifecycle
+        EOT
+      ]
+
+      environment = [
+        {
+          name  = "PROMETHEUS_STORAGE_PATH"
+          value = "/prometheus"
+        }
+      ]
+
+      mountPoints = [
+        {
+          sourceVolume  = "prometheus-storage"
+          containerPath = "/prometheus"
+          readOnly      = false
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.prometheus.name
+          "awslogs-region"       = data.aws_region.current.name
+          "awslogs-stream-prefix" = "prometheus"
+        }
+      }
+
+      healthCheck = {
+        command     = ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 60
+      }
+    }
+  ])
+
+  volume {
+    name = "prometheus-storage"
+    efs_volume_configuration {
+      file_system_id     = aws_efs_file_system.prometheus.id
+      transit_encryption = "ENABLED"
+      authorization_config {
+        access_point_id = aws_efs_access_point.prometheus.id
+        iam             = "ENABLED"
+      }
+    }
+  }
+
+  tags = {
+    Name = "${var.environment}-wokibrain-prometheus-task"
+  }
+}
+
+# ECS Service for Prometheus with Service Discovery
+resource "aws_ecs_service" "prometheus" {
+  name            = "${var.environment}-wokibrain-prometheus"
+  cluster         = var.ecs_cluster_id
+  task_definition = aws_ecs_task_definition.prometheus.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = var.private_subnet_ids
+    security_groups  = [aws_security_group.prometheus.id]
+    assign_public_ip = false
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.prometheus.arn
+    container_name   = "prometheus"
+    container_port   = 9090
+  }
+
+  service_registries {
+    registry_arn = aws_service_discovery_service.prometheus.arn
+  }
+
+  depends_on = [
+    aws_lb_target_group.prometheus
+  ]
+
+  tags = {
+    Name = "${var.environment}-wokibrain-prometheus-service"
+  }
+}
+
+# CloudWatch Log Group for Prometheus
+resource "aws_cloudwatch_log_group" "prometheus" {
+  name              = "/ecs/${var.environment}-wokibrain-prometheus"
+  retention_in_days = var.log_retention_days
+
+  tags = {
+    Name = "${var.environment}-wokibrain-prometheus-logs"
+  }
+}
+
+# Security Group for Prometheus
+resource "aws_security_group" "prometheus" {
+  name        = "${var.environment}-wokibrain-prometheus-sg"
+  description = "Security group for Prometheus ECS service"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    description     = "Prometheus HTTP from ALB"
+    from_port      = 9090
+    to_port        = 9090
+    protocol       = "tcp"
+    security_groups = [var.alb_security_group_id]
+  }
+
+  ingress {
+    description = "Prometheus HTTP from internal VPC (Grafana)"
+    from_port   = 9090
+    to_port     = 9090
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
+  }
+
+
+  # Allow Prometheus to scrape WokiBrain API metrics
+  ingress {
+    description     = "Prometheus scraping from API tasks"
+    from_port      = 9464
+    to_port        = 9464
+    protocol       = "tcp"
+    security_groups = [var.app_security_group_id]
+  }
+
+  egress {
+    description = "All outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.environment}-wokibrain-prometheus-sg"
+  }
+}
+
+# Target Group for Prometheus
+resource "aws_lb_target_group" "prometheus" {
+  name        = "${substr(var.environment, 0, 8)}-wb-prom-tg"
+  port        = 9090
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    timeout             = 5
+    interval            = 30
+    path                = "/-/healthy"
+    matcher             = "200"
+  }
+
+  deregistration_delay = 30
+
+  tags = {
+    Name = "${var.environment}-wokibrain-prometheus-tg"
+  }
+}
+
+# ALB Listener Rule for Prometheus
+resource "aws_lb_listener_rule" "prometheus" {
+  listener_arn = var.alb_listener_arn
+  priority     = 200
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.prometheus.arn
+  }
+
+  condition {
+    host_header {
+      values = [var.prometheus_domain_name]
+    }
+  }
+}
+
+# HTTPS Listener Rule for Prometheus (if HTTPS is enabled)
+# Use for_each with a known value to avoid dependency issues
+# Only create if HTTPS is enabled AND listener ARN is provided (not empty)
+resource "aws_lb_listener_rule" "prometheus_https" {
+  for_each    = var.use_https && var.alb_https_listener_arn != "" ? { create = true } : {}
+  listener_arn = var.alb_https_listener_arn
+  priority     = 200
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.prometheus.arn
+  }
+
+  condition {
+    host_header {
+      values = [var.prometheus_domain_name]
+    }
+  }
+}
+
+# EFS for Prometheus persistent storage
+resource "aws_efs_file_system" "prometheus" {
+  creation_token = "${var.environment}-wokibrain-prometheus"
+  encrypted      = true
+
+  performance_mode = "generalPurpose"
+  throughput_mode = "provisioned"
+  provisioned_throughput_in_mibps = 100
+
+  tags = {
+    Name = "${var.environment}-wokibrain-prometheus-efs"
+  }
+}
+
+# EFS Access Point for Prometheus with proper permissions
+# Prometheus runs as user nobody (UID 65534)
+resource "aws_efs_access_point" "prometheus" {
+  file_system_id = aws_efs_file_system.prometheus.id
+
+  posix_user {
+    gid = 65534
+    uid = 65534
+  }
+
+  root_directory {
+    path = "/prometheus"
+    creation_info {
+      owner_gid   = 65534
+      owner_uid   = 65534
+      permissions = "755"
+    }
+  }
+
+  tags = {
+    Name = "${var.environment}-wokibrain-prometheus-access-point"
+  }
+}
+
+
+# EFS Mount Targets
+resource "aws_efs_mount_target" "prometheus" {
+  count           = length(var.private_subnet_ids)
+  file_system_id  = aws_efs_file_system.prometheus.id
+  subnet_id       = var.private_subnet_ids[count.index]
+  security_groups = [aws_security_group.efs_prometheus.id]
+}
+
+# Security Group for EFS (Prometheus)
+resource "aws_security_group" "efs_prometheus" {
+  name        = "${var.environment}-wokibrain-efs-prometheus-sg"
+  description = "Security group for Prometheus EFS"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    description     = "NFS from Prometheus ECS tasks"
+    from_port       = 2049
+    to_port         = 2049
+    protocol        = "tcp"
+    security_groups = [aws_security_group.prometheus.id]
+  }
+
+  egress {
+    description = "All outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.environment}-wokibrain-efs-prometheus-sg"
+  }
+}
+
+# ConfigMap for Prometheus (stored in S3 and mounted via EFS or passed as environment)
+# For simplicity, we'll create an S3 bucket and sync the config
+resource "aws_s3_bucket" "prometheus_config" {
+  bucket = "${var.environment}-wokibrain-prometheus-config"
+
+  tags = {
+    Name = "${var.environment}-wokibrain-prometheus-config"
+  }
+}
+
+resource "aws_s3_bucket_versioning" "prometheus_config" {
+  bucket = aws_s3_bucket.prometheus_config.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "prometheus_config" {
+  bucket = aws_s3_bucket.prometheus_config.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# Prometheus configuration file (uploaded to S3)
+resource "aws_s3_object" "prometheus_config" {
+  bucket = aws_s3_bucket.prometheus_config.id
+  key    = "prometheus.yml"
+  content = templatefile("${path.module}/prometheus.yml.tpl", {
+    environment = var.environment
+    alb_dns_name = var.alb_dns_name
+    region = data.aws_region.current.name
+  })
+  content_type = "text/yaml"
+}
+
+# Note: The Prometheus config file needs to be downloaded from S3 and mounted
+# For production, consider using ECS task definition with init container or
+# use AWS Systems Manager Parameter Store / Secrets Manager
+
+data "aws_region" "current" {}
+

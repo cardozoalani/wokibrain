@@ -1,0 +1,64 @@
+# WokiBrain Terraform Variables Example
+# Copy this file to terraform.tfvars and fill in your values
+
+# AWS Configuration
+aws_region     = "us-east-1"
+aws_account_id = "123456789012"  # ⚠️ REQUIRED: Your AWS Account ID
+environment    = "production"
+
+# Network Configuration
+vpc_cidr = "10.0.0.0/16"
+
+# DocumentDB Configuration
+documentdb_instance_class  = "db.t3.medium"  # Production: db.r5.large, Dev: db.t3.medium
+documentdb_cluster_size    = 3
+documentdb_master_username = "wokiadmin"
+backup_retention_period    = 7
+
+# ECS Configuration
+image_tag          = "latest"
+app_port           = 3000
+desired_count      = 3
+task_cpu           = "512"   # Production: 1024, Dev: 512
+task_memory        = "1024"  # Production: 2048, Dev: 1024
+log_retention_days = 30
+
+# Monitoring
+alarm_email = "alerts@example.com"  # ⚠️ REQUIRED: Email for CloudWatch alarms
+
+# Redis Configuration (Optional - enabled by default)
+redis_node_type    = "cache.t3.medium"  # Production: cache.r6g.large
+redis_cluster_size = 3
+
+# Kafka Configuration (Optional - enabled by default)
+kafka_broker_nodes         = 3
+kafka_broker_instance_type = "kafka.m5.large"  # Production: kafka.m5.xlarge
+kafka_volume_size          = 100                 # GB
+
+# ALB HTTPS Configuration
+# Option 1: Let Terraform create the ACM certificate automatically (recommended)
+alb_domain_name = "wokibrain.grgcrew.com"  # ⚠️ REQUIRED: Your domain name
+# Include wildcard and subdomains as SANs (covers all subdomains)
+# Note: Grafana and Prometheus domains are automatically added by the module
+alb_subject_alternative_names = ["*.grgcrew.com"]
+# Set to false if certificate is already validated, true to create validation records
+alb_create_route53_validation = false  # Set to true if you want Terraform to create validation records
+alb_route53_zone_id           = "Z1234567890ABC"  # ⚠️ REQUIRED for DNS records (Grafana/Prometheus): Your Route53 Zone ID
+
+# Option 2: Use an existing ACM certificate (alternative to Option 1)
+# alb_acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/abc123"
+
+# Grafana Configuration (Optional)
+enable_grafana         = true
+grafana_domain_name    = "grafana.wokibrain.grgcrew.com"
+grafana_admin_password = "ChangeThisPasswordInProduction123!"  # ⚠️ REQUIRED: Strong password for Grafana admin
+
+# Prometheus Configuration (Optional)
+enable_prometheus      = true
+prometheus_domain_name = "prometheus.wokibrain.grgcrew.com"
+
+# CDN Configuration (Optional)
+# cdn_domain_name = "api.wokibrain.grgcrew.com"
+# cdn_acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/abc123"
+# cdn_price_class = "PriceClass_All"  # Options: PriceClass_All, PriceClass_200, PriceClass_100
+# cdn_waf_web_acl_id = ""  # Optional WAF Web ACL ID
