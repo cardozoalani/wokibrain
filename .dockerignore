@@ -26,3 +26,22 @@ docs/internal/
 *.crt
 certs/
 terraform/certs/
+# Test files
+**/*.spec.ts
+**/*.test.ts
+e2e/
+playwright.config.ts
+vitest.config*.ts
+# CI/CD
+.github/
+# Documentation (except what's needed)
+README.md
+*.md
+!CHANGELOG.md
+# Other
+.husky/
+scripts/
+postman/
+*.sh
+Makefile
+RUN_*.sh
