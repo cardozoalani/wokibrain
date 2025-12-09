@@ -11,21 +11,16 @@ coverage
 *.swp
 *.swo
 *~
+# Terraform files and directories - exclude everything in terraform directory
+terraform/
+!terraform.tfvars.example
+.terraform/
 .terraform
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
-terraform.tfvars
 *.tfvars
 !terraform.tfvars.example
-docs/internal/
-*.pem
-*.key
-*.p12
-*.pfx
-*.crt
-certs/
-terraform/certs/
 # Test files
 **/*.spec.ts
 **/*.test.ts

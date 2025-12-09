@@ -36,8 +36,10 @@ echo ""
 
 # 2. Construir imagen para plataforma Linux/amd64 (requerido por ECS Fargate)
 echo "2️⃣  Construyendo imagen Docker (Linux/amd64)..."
-echo "   ℹ️  Usando BuildKit para mejor rendimiento..."
-if DOCKER_BUILDKIT=1 docker build --platform linux/amd64 -t $ECR_REPO:$IMAGE_TAG .; then
+echo "   ℹ️  Construyendo imagen..."
+# Try with BuildKit first, fallback to legacy builder if it fails
+if DOCKER_BUILDKIT=1 docker build --platform linux/amd64 -t $ECR_REPO:$IMAGE_TAG . 2>/dev/null || \
+   DOCKER_BUILDKIT=0 docker build --platform linux/amd64 -t $ECR_REPO:$IMAGE_TAG .; then
   echo "   ✅ Imagen construida exitosamente"
 else
   echo "   ❌ Error construyendo imagen"

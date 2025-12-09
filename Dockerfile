@@ -5,15 +5,12 @@ RUN apk add --no-cache libc6-compat
 # Production dependencies only
 FROM base AS deps
 COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --only=production && \
-    npm cache clean --force
+RUN npm ci --only=production && npm cache clean --force
 
 # Build stage with dev dependencies
 FROM base AS builder
 COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci
+RUN npm ci
 # Copy source code (this layer will be cached if only package.json changes)
 COPY tsconfig.json ./
 COPY src ./src
