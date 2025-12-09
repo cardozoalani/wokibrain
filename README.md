@@ -8,6 +8,7 @@
 
 > **Live Production API**: https://wokibrain.grgcrew.com/api/v1
 > **API Documentation**: https://wokibrain.grgcrew.com/api/v1/docs
+> **Grafana Monitoring**: https://grafana.wokibrain.grgcrew.com (admin / 1234567890)
 > **Support**: cardozoalani@hotmail.com
 
 ---
@@ -1462,34 +1463,14 @@ kubectl create secret generic grafana-secrets \
 
 #### AWS ECS Deployment (Terraform)
 
-Grafana is available as an optional module. To enable:
+Grafana is deployed and available for interviewers to access monitoring dashboards.
 
-1. **Enable Grafana in Terraform**:
+**Access Grafana**:
+- **URL**: https://grafana.wokibrain.grgcrew.com
+- **Username**: `admin`
+- **Password**: `1234567890`
 
-   ```hcl
-   # terraform/terraform.tfvars
-   enable_grafana = true
-   grafana_domain_name = "grafana.wokibrain.grgcrew.com"  # Optional: custom domain
-   grafana_admin_password = "ChangeThisPasswordInProduction123!"  # Admin password
-   ```
-
-2. **Apply Terraform**:
-
-   ```bash
-   cd terraform
-   terraform apply
-   ```
-
-3. **Access Grafana**:
-   - **With custom domain**: `https://grafana.wokibrain.grgcrew.com`
-   - **Without custom domain**: Access via ALB DNS name (check Terraform outputs):
-     ```bash
-     terraform output grafana_endpoint
-     ```
-
-4. **Login Credentials**:
-   - **Username**: `admin`
-   - **Password**: Set in `grafana_admin_password` variable (default: `ChangeThisPasswordInProduction123!`)
+**Grafana Features**:
 
 **Grafana Features**:
 
@@ -1499,6 +1480,8 @@ Grafana is available as an optional module. To enable:
 - ✅ Auto-provisioned dashboards and datasources on startup
 - ✅ Internal HTTP communication (HTTPS terminated at ALB)
 - ✅ Service Discovery integration for Prometheus connectivity
+
+**Note**: Grafana is enabled by default in the production deployment. Interviewers can access it using the credentials above to review system metrics and performance.
 
 **Grafana Dashboards**:
 
