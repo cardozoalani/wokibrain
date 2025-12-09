@@ -78,6 +78,8 @@ describe('WebhookService', () => {
     );
 
     vi.mocked(webhookRepo.findByEvent).mockResolvedValue([webhook]);
+
+    // Mock fetch to fail first time, then succeed
     vi.mocked(fetch)
       .mockRejectedValueOnce(new Error('Network error'))
       .mockResolvedValueOnce({
@@ -86,6 +88,7 @@ describe('WebhookService', () => {
         text: vi.fn().mockResolvedValue(''),
       } as any);
 
+    // Start with attempt 1, should retry and succeed on attempt 2
     const result = await webhookService.deliverToWebhook(
       webhook,
       {
@@ -94,11 +97,13 @@ describe('WebhookService', () => {
         timestamp: new Date().toISOString(),
         id: 'event-1',
       },
-      1
+      1 // Start with attempt 1
     );
 
+    // Should be called twice: once for attempt 1 (fails), once for attempt 2 (succeeds)
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(result.success).toBe(true);
+    expect(result.attempt).toBe(2);
   });
 
   it('should generate and verify signatures', () => {

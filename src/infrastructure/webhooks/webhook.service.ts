@@ -190,7 +190,17 @@ export class WebhookService {
       const isTimeout = error instanceof Error && error.name === 'AbortError';
 
       // Retry on network errors and timeouts
-      if ((isTimeout || errorMessage.includes('fetch')) && attempt < opts.maxRetries) {
+      // Network errors include: fetch errors, network errors, connection errors, etc.
+      const isNetworkError =
+        isTimeout ||
+        errorMessage.includes('fetch') ||
+        errorMessage.includes('Network') ||
+        errorMessage.includes('network') ||
+        errorMessage.includes('ECONNREFUSED') ||
+        errorMessage.includes('ENOTFOUND') ||
+        errorMessage.includes('ETIMEDOUT');
+
+      if (isNetworkError && attempt < opts.maxRetries) {
         this.logger.warn(`Webhook delivery error, retrying`, {
           webhookId: webhook.id,
           url: webhook.url,
