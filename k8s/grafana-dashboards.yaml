@@ -1,0 +1,115 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: wokibrain
+data:
+  dashboard-provider.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'WokiBrain Dashboards'
+        orgId: 1
+        folder: 'WokiBrain'
+        type: file
+        disableDeletion: false
+        editable: true
+        allowUiUpdates: true
+        options:
+          path: /etc/grafana/provisioning/dashboards
+  wokibrain-overview.json: |
+    {
+      "dashboard": {
+        "title": "WokiBrain Overview",
+        "tags": ["wokibrain", "api", "performance"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "title": "Requests Per Second",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total[5m])",
+                "legendFormat": "{{method}} {{route}}"
+              }
+            ],
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+          },
+          {
+            "title": "P95 Latency",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_ms_bucket[5m]))",
+                "legendFormat": "{{route}}"
+              }
+            ],
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+          },
+          {
+            "title": "Error Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{status_code=~\"5..\"}[5m])",
+                "legendFormat": "5xx Errors"
+              }
+            ],
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+          },
+          {
+            "title": "Bookings Created (Rate)",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(bookings_created_total[5m])",
+                "legendFormat": "{{restaurant_id}}"
+              }
+            ],
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+          },
+          {
+            "title": "Cache Hit Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(cache_hits_total[5m]) / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m])) * 100"
+              }
+            ],
+            "gridPos": { "h": 4, "w": 6, "x": 0, "y": 16 }
+          },
+          {
+            "title": "Active Connections",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "active_connections"
+              }
+            ],
+            "gridPos": { "h": 4, "w": 6, "x": 6, "y": 16 }
+          },
+          {
+            "title": "Database Connections",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "database_connections_active"
+              }
+            ],
+            "gridPos": { "h": 4, "w": 6, "x": 12, "y": 16 }
+          },
+          {
+            "title": "Projection Lag",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "projection_lag_seconds"
+              }
+            ],
+            "gridPos": { "h": 4, "w": 6, "x": 18, "y": 16 }
+          }
+        ]
+      }
+    }
+
+
+

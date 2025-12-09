@@ -1,0 +1,345 @@
+asyncapi: '3.0.0'
+info:
+  title: WokiBrain WebSocket API
+  version: 1.0.0
+  description: |
+    # Real-time Event Notifications via Socket.IO
+
+    WokiBrain provides real-time event notifications via WebSocket connections using Socket.IO.
+    Subscribe to booking events and receive instant updates when bookings are created, updated, or cancelled.
+
+    ## Features
+
+    - ✅ Real-time event broadcasting
+    - ✅ Room-based subscriptions (by restaurant or sector)
+    - ✅ Automatic reconnection
+    - ✅ Fallback to polling if WebSocket fails
+    - ✅ Event filtering by subscription
+
+    ## Architecture
+
+    WebSocket events are powered by Kafka event streaming:
+    1. Domain event is published to Kafka
+    2. WebSocket worker consumes the event from Kafka
+    3. Event is broadcast to all subscribed WebSocket clients
+    4. Clients receive real-time updates
+
+    **Note:** WebSocket functionality requires Kafka to be configured and running.
+  contact:
+    name: Technical Challenge Support
+    email: cardozoalani@hotmail.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  production:
+    host: wokibrain.grgcrew.com
+    protocol: wss
+    pathname: /ws
+    description: Production WebSocket server (HTTPS/WSS)
+  local:
+    host: localhost:3000
+    protocol: ws
+    pathname: /ws
+    description: Local development WebSocket server
+
+defaultContentType: application/json
+
+channels:
+  /:
+    description: Main WebSocket connection channel
+    messages:
+      subscribe:
+        $ref: '#/components/messages/Subscribe'
+      unsubscribe:
+        $ref: '#/components/messages/Unsubscribe'
+      subscribed:
+        $ref: '#/components/messages/Subscribed'
+      unsubscribed:
+        $ref: '#/components/messages/Unsubscribed'
+      booking-event:
+        $ref: '#/components/messages/BookingEvent'
+
+operations:
+  subscribe:
+    action: send
+    channel:
+      $ref: '#/channels/~1'
+    title: Subscribe to Events
+    description: Subscribe to real-time events for a restaurant or sector
+    messages:
+      - $ref: '#/channels/~1/messages/subscribe'
+  unsubscribe:
+    action: send
+    channel:
+      $ref: '#/channels/~1'
+    title: Unsubscribe from Events
+    description: Unsubscribe from restaurant or sector events
+    messages:
+      - $ref: '#/channels/~1/messages/unsubscribe'
+  receiveBookingEvent:
+    action: receive
+    channel:
+      $ref: '#/channels/~1'
+    title: Receive Booking Events
+    description: Receive real-time booking events (created, cancelled, updated)
+    messages:
+      - $ref: '#/channels/~1/messages/booking-event'
+
+components:
+  messages:
+    Subscribe:
+      name: subscribe
+      title: Subscribe Request
+      summary: Subscribe to restaurant or sector events
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/SubscribeRequest'
+      examples:
+        - name: Subscribe to Restaurant
+          payload:
+            restaurantId: R1
+        - name: Subscribe to Sector
+          payload:
+            sectorId: S1
+        - name: Subscribe to Both
+          payload:
+            restaurantId: R1
+            sectorId: S1
+    Unsubscribe:
+      name: unsubscribe
+      title: Unsubscribe Request
+      summary: Unsubscribe from restaurant or sector events
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/UnsubscribeRequest'
+      examples:
+        - name: Unsubscribe from Restaurant
+          payload:
+            restaurantId: R1
+    Subscribed:
+      name: subscribed
+      title: Subscription Confirmation
+      summary: Confirmation that subscription was successful
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/SubscribedResponse'
+      examples:
+        - name: Restaurant Subscription Confirmed
+          payload:
+            success: true
+            restaurantId: R1
+    Unsubscribed:
+      name: unsubscribed
+      title: Unsubscription Confirmation
+      summary: Confirmation that unsubscription was successful
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/UnsubscribedResponse'
+      examples:
+        - name: Restaurant Unsubscription Confirmed
+          payload:
+            success: true
+            restaurantId: R1
+    BookingEvent:
+      name: booking-event
+      title: Booking Event
+      summary: Real-time booking event notification
+      description: |
+        Broadcasted when a booking is created, updated, or cancelled.
+        Only delivered to clients subscribed to the relevant restaurant or sector.
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/BookingEvent'
+      examples:
+        - name: Booking Created
+          payload:
+            type: BookingCreated
+            data:
+              id: 550e8400-e29b-41d4-a716-446655440000
+              restaurantId: R1
+              sectorId: S1
+              tableIds:
+                - T4
+              partySize: 5
+              start: '2025-01-20T19:00:00Z'
+              end: '2025-01-20T20:30:00Z'
+              durationMinutes: 90
+              status: CONFIRMED
+              createdAt: '2025-01-20T10:00:00Z'
+            timestamp: '2025-01-20T10:00:00Z'
+        - name: Booking Cancelled
+          payload:
+            type: BookingCancelled
+            data:
+              id: 550e8400-e29b-41d4-a716-446655440000
+              restaurantId: R1
+              sectorId: S1
+              status: CANCELLED
+            timestamp: '2025-01-20T11:00:00Z'
+        - name: Booking Updated
+          payload:
+            type: BookingUpdated
+            data:
+              id: 550e8400-e29b-41d4-a716-446655440000
+              restaurantId: R1
+              sectorId: S1
+              changes:
+                partySize: 6
+            timestamp: '2025-01-20T12:00:00Z'
+
+  schemas:
+    SubscribeRequest:
+      type: object
+      properties:
+        restaurantId:
+          type: string
+          description: Restaurant ID to subscribe to
+          example: R1
+        sectorId:
+          type: string
+          description: Sector ID to subscribe to
+          example: S1
+      oneOf:
+        - required:
+            - restaurantId
+        - required:
+            - sectorId
+        - required:
+            - restaurantId
+            - sectorId
+      additionalProperties: false
+
+    UnsubscribeRequest:
+      type: object
+      properties:
+        restaurantId:
+          type: string
+          description: Restaurant ID to unsubscribe from
+          example: R1
+        sectorId:
+          type: string
+          description: Sector ID to unsubscribe from
+          example: S1
+      additionalProperties: false
+
+    SubscribedResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          description: Whether subscription was successful
+          example: true
+        restaurantId:
+          type: string
+          description: Restaurant ID subscribed to (if applicable)
+          example: R1
+        sectorId:
+          type: string
+          description: Sector ID subscribed to (if applicable)
+          example: S1
+
+    UnsubscribedResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          description: Whether unsubscription was successful
+          example: true
+        restaurantId:
+          type: string
+          description: Restaurant ID unsubscribed from (if applicable)
+          example: R1
+        sectorId:
+          type: string
+          description: Sector ID unsubscribed from (if applicable)
+          example: S1
+
+    BookingEvent:
+      type: object
+      required:
+        - type
+        - data
+        - timestamp
+      properties:
+        type:
+          type: string
+          enum:
+            - BookingCreated
+            - BookingCancelled
+            - BookingUpdated
+          description: Type of booking event
+          example: BookingCreated
+        data:
+          type: object
+          description: Booking data (varies by event type)
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: Booking ID
+              example: 550e8400-e29b-41d4-a716-446655440000
+            restaurantId:
+              type: string
+              description: Restaurant ID
+              example: R1
+            sectorId:
+              type: string
+              description: Sector ID
+              example: S1
+            tableIds:
+              type: array
+              items:
+                type: string
+              description: Table IDs assigned to the booking
+              example:
+                - T4
+            partySize:
+              type: integer
+              description: Number of guests
+              example: 5
+            start:
+              type: string
+              format: date-time
+              description: Booking start time (ISO 8601)
+              example: '2025-01-20T19:00:00Z'
+            end:
+              type: string
+              format: date-time
+              description: Booking end time (ISO 8601)
+              example: '2025-01-20T20:30:00Z'
+            durationMinutes:
+              type: integer
+              description: Booking duration in minutes
+              example: 90
+            status:
+              type: string
+              enum:
+                - CONFIRMED
+                - CANCELLED
+              description: Booking status
+              example: CONFIRMED
+            createdAt:
+              type: string
+              format: date-time
+              description: Booking creation timestamp
+              example: '2025-01-20T10:00:00Z'
+            changes:
+              type: object
+              description: Changes made (only for BookingUpdated events)
+              additionalProperties: true
+          required:
+            - id
+            - restaurantId
+            - sectorId
+            - status
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp (ISO 8601)
+          example: '2025-01-20T10:00:00Z'

@@ -1,0 +1,39 @@
+{
+  "collection": "WokiBrain-API.postman_collection.json",
+  "environment": "WokiBrain-Local.postman_environment.json",
+  "reporters": ["cli", "json", "htmlextra"],
+  "reporter": {
+    "htmlextra": {
+      "export": "./newman-reports/report.html",
+      "darkTheme": true,
+      "logs": true,
+      "testPaging": true,
+      "browserTitle": "WokiBrain API Test Report",
+      "title": "WokiBrain API Tests",
+      "titleSize": 4,
+      "omitHeaders": false,
+      "skipHeaders": [],
+      "omitRequestBodies": false,
+      "omitResponseBodies": false,
+      "hideRequest": false,
+      "hideResponse": false,
+      "showEnvironmentData": true,
+      "skipEnvironmentVars": [],
+      "skipGlobalVars": [],
+      "skipSensitiveData": true,
+      "showMarkdownLinks": true,
+      "showFolderDescription": true,
+      "timezone": "America/Argentina/Buenos_Aires"
+    },
+    "json": {
+      "export": "./newman-reports/report.json"
+    }
+  },
+  "iterationCount": 1,
+  "bail": false,
+  "suppressExitCode": false,
+  "color": "on"
+}
+
+
+

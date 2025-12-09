@@ -1,0 +1,131 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wokibrain-api
+  namespace: wokibrain
+  labels:
+    app: wokibrain
+    component: api
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: wokibrain
+      component: api
+  template:
+    metadata:
+      labels:
+        app: wokibrain
+        component: api
+        version: v1
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9464'
+        prometheus.io/path: '/metrics'
+    spec:
+      serviceAccountName: wokibrain-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+        - name: api
+          image: wokibrain:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+            - name: grpc
+              containerPort: 50051
+              protocol: TCP
+            - name: metrics
+              containerPort: 9464
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: 'production'
+            - name: PORT
+              value: '3000'
+            - name: GRPC_PORT
+              value: '50051'
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: wokibrain-secrets
+                  key: mongodb-uri
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: wokibrain-config
+                  key: redis-host
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: wokibrain-config
+                  key: redis-port
+            - name: JWT_ACCESS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: wokibrain-secrets
+                  key: jwt-access-secret
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: wokibrain-secrets
+                  key: jwt-refresh-secret
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: wokibrain-config
+                  key: kafka-brokers
+            - name: METRICS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: wokibrain-config
+                  key: METRICS_PORT
+            - name: OTEL_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: wokibrain-config
+                  key: OTEL_ENABLED
+            - name: OTEL_SERVICE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: wokibrain-config
+                  key: OTEL_SERVICE_NAME
+          resources:
+            requests:
+              memory: '512Mi'
+              cpu: '250m'
+            limits:
+              memory: '2Gi'
+              cpu: '1000m'
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health/live
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health/ready
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ['/bin/sh', '-c', 'sleep 15']
+      terminationGracePeriodSeconds: 30

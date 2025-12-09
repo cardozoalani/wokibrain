@@ -1,0 +1,32 @@
+{
+  "name": "@wokibrain/sdk",
+  "version": "1.0.0",
+  "description": "Official TypeScript SDK for WokiBrain API",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "wokibrain",
+    "restaurant",
+    "booking",
+    "reservation",
+    "sdk"
+  ],
+  "author": "WokiBrain",
+  "license": "MIT",
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}
+
+

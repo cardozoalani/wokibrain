@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WokiBrain WebSocket API Documentation</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: #f5f5f5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px 20px;
+      margin-bottom: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    header h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+
+    header p {
+      font-size: 1.2em;
+      opacity: 0.9;
+    }
+
+    .nav {
+      background: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .nav a {
+      color: #667eea;
+      text-decoration: none;
+      margin-right: 20px;
+      font-weight: 500;
+    }
+
+    .nav a:hover {
+      text-decoration: underline;
+    }
+
+    .section {
+      background: white;
+      padding: 30px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .section h2 {
+      color: #667eea;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+    }
+
+    .section h3 {
+      color: #764ba2;
+      margin-top: 25px;
+      margin-bottom: 15px;
+    }
+
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+    }
+
+    pre {
+      background: #2d2d2d;
+      color: #f8f8f2;
+      padding: 20px;
+      border-radius: 5px;
+      overflow-x: auto;
+      margin: 15px 0;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      color: inherit;
+    }
+
+    .event-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    .event-table th,
+    .event-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .event-table th {
+      background: #667eea;
+      color: white;
+    }
+
+    .event-table tr:hover {
+      background: #f5f5f5;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-size: 0.85em;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+
+    .badge-success {
+      background: #4caf50;
+      color: white;
+    }
+
+    .badge-info {
+      background: #2196f3;
+      color: white;
+    }
+
+    .example-box {
+      background: #f9f9f9;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin: 15px 0;
+    }
+
+    .warning {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+
+    .info {
+      background: #d1ecf1;
+      border-left: 4px solid #17a2b8;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔌 WokiBrain WebSocket API</h1>
+      <p>Real-time event notifications via Socket.IO</p>
+    </header>
+
+    <nav class="nav">
+      <a href="/api/v1/docs">← Back to REST API Docs</a>
+      <a href="#overview">Overview</a>
+      <a href="#connection">Connection</a>
+      <a href="#events">Events</a>
+      <a href="#examples">Examples</a>
+    </nav>
+
+    <section class="section" id="overview">
+      <h2>Overview</h2>
+      <p>
+        WokiBrain provides real-time event notifications via WebSocket connections using Socket.IO.
+        This allows your application to receive instant updates when bookings are created, updated, or cancelled.
+      </p>
+
+      <div class="info">
+        <strong>WebSocket Endpoint:</strong> <code>ws://localhost:3000/ws</code> (local) or <code>wss://wokibrain.grgcrew.com/ws</code> (production)
+      </div>
+
+      <h3>Features</h3>
+      <ul>
+        <li>✅ Real-time event broadcasting</li>
+        <li>✅ Room-based subscriptions (by restaurant or sector)</li>
+        <li>✅ Automatic reconnection</li>
+        <li>✅ Fallback to polling if WebSocket fails</li>
+        <li>✅ Event filtering by subscription</li>
+      </ul>
+    </section>
+
+    <section class="section" id="connection">
+      <h2>Connection</h2>
+
+      <h3>JavaScript/TypeScript (Socket.IO Client)</h3>
+      <pre><code>import { io } from 'socket.io-client';
+
+const socket = io('https://wokibrain.grgcrew.com', {
+  path: '/ws',
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionDelay: 1000,
+  reconnectionAttempts: 5
+});
+
+socket.on('connect', () => {
+  console.log('Connected! Socket ID:', socket.id);
+});
+
+socket.on('disconnect', (reason) => {
+  console.log('Disconnected:', reason);
+});
+
+socket.on('connect_error', (error) => {
+  console.error('Connection error:', error);
+});</code></pre>
+
+      <h3>Node.js</h3>
+      <pre><code>const io = require('socket.io-client');
+
+const socket = io('https://wokibrain.grgcrew.com', {
+  path: '/ws',
+  transports: ['websocket', 'polling']
+});</code></pre>
+
+      <h3>Python</h3>
+      <pre><code>from socketio import Client
+
+socket = Client()
+socket.connect('https://wokibrain.grgcrew.com', socketio_path='/ws')
+
+@socket.on('connect')
+def on_connect():
+    print('Connected!')</code></pre>
+    </section>
+
+    <section class="section" id="subscriptions">
+      <h2>Subscriptions</h2>
+      <p>
+        Subscribe to events for specific restaurants or sectors. Events will only be delivered to clients
+        subscribed to the relevant restaurant or sector.
+      </p>
+
+      <h3>Subscribe to Restaurant Events</h3>
+      <pre><code>socket.emit('subscribe', {
+  restaurantId: 'R1'
+});
+
+socket.on('subscribed', (data) => {
+  console.log('Subscribed to restaurant:', data);
+  // { success: true, restaurantId: 'R1' }
+});</code></pre>
+
+      <h3>Subscribe to Sector Events</h3>
+      <pre><code>socket.emit('subscribe', {
+  sectorId: 'S1'
+});
+
+socket.on('subscribed', (data) => {
+  console.log('Subscribed to sector:', data);
+  // { success: true, sectorId: 'S1' }
+});</code></pre>
+
+      <h3>Subscribe to Both</h3>
+      <pre><code>socket.emit('subscribe', {
+  restaurantId: 'R1',
+  sectorId: 'S1'
+});</code></pre>
+
+      <h3>Unsubscribe</h3>
+      <pre><code>socket.emit('unsubscribe', {
+  restaurantId: 'R1'
+});
+
+socket.on('unsubscribed', (data) => {
+  console.log('Unsubscribed:', data);
+});</code></pre>
+    </section>
+
+    <section class="section" id="events">
+      <h2>Events</h2>
+
+      <h3>Received Events</h3>
+      <table class="event-table">
+        <thead>
+          <tr>
+            <th>Event Name</th>
+            <th>Description</th>
+            <th>Payload</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>booking-event</code></td>
+            <td>Real-time booking updates</td>
+            <td>
+              <pre style="margin: 0; background: none; color: #333;">{
+  type: 'BookingCreated' | 'BookingCancelled' | 'BookingUpdated',
+  data: {
+    id: string,
+    restaurantId: string,
+    sectorId: string,
+    tableIds: string[],
+    partySize: number,
+    start: string (ISO 8601),
+    end: string (ISO 8601),
+    status: 'CONFIRMED' | 'CANCELLED',
+    ...
+  },
+  timestamp: string (ISO 8601)
+}</pre>
+            </td>
+          </tr>
+          <tr>
+            <td><code>subscribed</code></td>
+            <td>Confirmation of subscription</td>
+            <td><code>{ success: true, restaurantId?: string, sectorId?: string }</code></td>
+          </tr>
+          <tr>
+            <td><code>unsubscribed</code></td>
+            <td>Confirmation of unsubscription</td>
+            <td><code>{ success: true, restaurantId?: string, sectorId?: string }</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Listening to Booking Events</h3>
+      <pre><code>socket.on('booking-event', (event) => {
+  console.log('Event type:', event.type);
+  console.log('Booking data:', event.data);
+  console.log('Timestamp:', event.timestamp);
+
+  switch (event.type) {
+    case 'BookingCreated':
+      console.log('New booking created:', event.data.id);
+      break;
+    case 'BookingCancelled':
+      console.log('Booking cancelled:', event.data.id);
+      break;
+    case 'BookingUpdated':
+      console.log('Booking updated:', event.data.id);
+      break;
+  }
+});</code></pre>
+    </section>
+
+    <section class="section" id="examples">
+      <h2>Complete Examples</h2>
+
+      <h3>React Hook Example</h3>
+      <pre><code>import { useEffect, useState } from 'react';
+import { io } from 'socket.io-client';
+
+function useBookingEvents(restaurantId: string) {
+  const [bookings, setBookings] = useState([]);
+  const [connected, setConnected] = useState(false);
+
+  useEffect(() => {
+    const socket = io('https://wokibrain.grgcrew.com', {
+      path: '/ws',
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {
+      setConnected(true);
+      socket.emit('subscribe', { restaurantId });
+    });
+
+    socket.on('booking-event', (event) => {
+      if (event.type === 'BookingCreated') {
+        setBookings(prev => [...prev, event.data]);
+      } else if (event.type === 'BookingCancelled') {
+        setBookings(prev => prev.filter(b => b.id !== event.data.id));
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [restaurantId]);
+
+  return { bookings, connected };
+}</code></pre>
+
+      <h3>Vue.js Example</h3>
+      <pre><code>import { ref, onMounted, onUnmounted } from 'vue';
+import { io } from 'socket.io-client';
+
+export function useBookingEvents(restaurantId: string) {
+  const bookings = ref([]);
+  const connected = ref(false);
+  let socket = null;
+
+  onMounted(() => {
+    socket = io('https://wokibrain.grgcrew.com', {
+      path: '/ws',
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {
+      connected.value = true;
+      socket.emit('subscribe', { restaurantId });
+    });
+
+    socket.on('booking-event', (event) => {
+      if (event.type === 'BookingCreated') {
+        bookings.value.push(event.data);
+      }
+    });
+  });
+
+  onUnmounted(() => {
+    if (socket) {
+      socket.disconnect();
+    }
+  });
+
+  return { bookings, connected };
+}</code></pre>
+
+      <h3>Node.js Server Example</h3>
+      <pre><code>const io = require('socket.io-client');
+
+class BookingMonitor {
+  constructor(restaurantId) {
+    this.socket = io('https://wokibrain.grgcrew.com', {
+      path: '/ws',
+      transports: ['websocket', 'polling']
+    });
+
+    this.socket.on('connect', () => {
+      console.log('Connected to WokiBrain WebSocket');
+      this.socket.emit('subscribe', { restaurantId });
+    });
+
+    this.socket.on('booking-event', (event) => {
+      this.handleBookingEvent(event);
+    });
+  }
+
+  handleBookingEvent(event) {
+    switch (event.type) {
+      case 'BookingCreated':
+        console.log('New booking:', event.data.id);
+        // Send notification, update database, etc.
+        break;
+      case 'BookingCancelled':
+        console.log('Booking cancelled:', event.data.id);
+        break;
+    }
+  }
+
+  disconnect() {
+    this.socket.disconnect();
+  }
+}
+
+// Usage
+const monitor = new BookingMonitor('R1');</code></pre>
+    </section>
+
+    <section class="section" id="architecture">
+      <h2>Architecture</h2>
+      <p>
+        WebSocket events are powered by Kafka event streaming. When a booking event occurs:
+      </p>
+      <ol>
+        <li>Domain event is published to Kafka</li>
+        <li>WebSocket worker consumes the event from Kafka</li>
+        <li>Event is broadcast to all subscribed WebSocket clients</li>
+        <li>Clients receive real-time updates</li>
+      </ol>
+
+      <div class="warning">
+        <strong>Note:</strong> WebSocket functionality requires Kafka to be configured and running.
+        Without Kafka, WebSocket events will not be delivered.
+      </div>
+    </section>
+
+    <section class="section" id="troubleshooting">
+      <h2>Troubleshooting</h2>
+
+      <h3>Connection Issues</h3>
+      <ul>
+        <li><strong>Cannot connect:</strong> Verify the WebSocket path is <code>/ws</code></li>
+        <li><strong>Connection drops:</strong> Socket.IO automatically reconnects (check reconnection settings)</li>
+        <li><strong>No events received:</strong> Ensure you've subscribed to the correct restaurant/sector</li>
+      </ul>
+
+      <h3>Event Not Received</h3>
+      <ul>
+        <li>Verify subscription was successful (listen for <code>subscribed</code> event)</li>
+        <li>Check that Kafka is configured and running</li>
+        <li>Verify the restaurant/sector ID matches the event data</li>
+        <li>Check browser console for errors</li>
+      </ul>
+
+      <h3>Production vs Local</h3>
+      <ul>
+        <li><strong>Local:</strong> <code>ws://localhost:3000/ws</code></li>
+        <li><strong>Production:</strong> <code>wss://wokibrain.grgcrew.com/ws</code> (note: <code>wss://</code> for HTTPS)</li>
+      </ul>
+    </section>
+
+    <section class="section" id="api-reference">
+      <h2>API Reference</h2>
+      <p>
+        For REST API documentation, see <a href="/api/v1/docs">REST API Docs</a>.
+      </p>
+      <p>
+        WebSocket events are triggered by the same domain events that power webhooks.
+        See the <a href="/api/v1/docs#tag/Webhooks">Webhooks documentation</a> for event types.
+      </p>
+    </section>
+  </div>
+</body>
+</html>
+

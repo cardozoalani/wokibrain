@@ -1,0 +1,1639 @@
+openapi: 3.1.0
+info:
+  title: WokiBrain API
+  version: 1.0.0
+  description: |
+    # Enterprise Restaurant Booking Engine
+
+    WokiBrain is a production-ready booking system that intelligently manages restaurant reservations with support for:
+
+    - **Intelligent Seat Discovery**: Single tables and dynamic combinations
+    - **Deterministic Selection**: Consistent seat assignments with scoring algorithm
+    - **Concurrency Control**: Lock-based mechanism prevents double bookings
+    - **Idempotency**: Safe retry logic with idempotency keys
+    - **Service Windows**: Configurable operating hours
+    - **15-Minute Grid**: Standardized time slots
+
+    ## Authentication
+
+    Production endpoints require API key authentication via `X-API-Key` header.
+
+    ## Rate Limiting
+
+    - **Default**: 100 requests per minute per IP
+    - Rate limits are configurable per environment
+
+    ## Idempotency
+
+    POST/PATCH/DELETE operations support `Idempotency-Key` header for safe retries.
+
+    ## Webhooks
+
+    Subscribe to real-time events via webhooks (booking.created, booking.cancelled, etc.)
+
+    ## WebSockets
+
+    Real-time event notifications via WebSocket (Socket.IO). See [AsyncAPI Documentation](/api/v1/docs/websockets) for complete WebSocket API documentation.
+
+  contact:
+    name: Technical Challenge Support
+    email: cardozoalani@hotmail.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  x-logo:
+    url: https://raw.githubusercontent.com/Redocly/redoc/main/docs/images/redoc-logo.png
+    altText: WokiBrain Logo
+
+servers:
+  - url: https://wokibrain.grgcrew.com/api/v1
+    description: Production (AWS ECS)
+  - url: http://localhost:3000/api/v1
+    description: Local Development
+
+tags:
+  - name: Bookings
+    description: Core booking operations
+    x-displayName: 🎫 Bookings
+  - name: Discovery
+    description: Seat availability discovery
+    x-displayName: 🔍 Discovery
+  - name: Restaurants
+    description: Restaurant management
+    x-displayName: 🏪 Restaurants
+  - name: Tables
+    description: Table configuration
+    x-displayName: 🪑 Tables
+  - name: Analytics
+    description: Business intelligence
+    x-displayName: 📊 Analytics
+  - name: Webhooks
+    description: Event subscriptions
+    x-displayName: 🔔 Webhooks
+  - name: Health
+    description: System health checks
+    x-displayName: ❤️ Health
+  - name: Admin
+    description: Administrative endpoints for setup and testing
+    x-displayName: ⚙️ Admin
+
+x-tagGroups:
+  - name: Core API
+    tags:
+      - Discovery
+      - Bookings
+  - name: Management
+    tags:
+      - Restaurants
+      - Tables
+  - name: Platform
+    tags:
+      - Analytics
+      - Webhooks
+  - name: Monitoring
+    tags:
+      - Health
+  - name: Administration
+    tags:
+      - Admin
+
+paths:
+  /woki/discover:
+    get:
+      operationId: discoverSeats
+      summary: Discover Available Seats
+      description: |
+        Find available seating options for a party, including single tables and combinations.
+
+        **Algorithm**: WokiBrain selection with scoring based on:
+        - Table utilization (50 points)
+        - Single table preference (20 points)
+        - Perfect fit bonus (30 points)
+
+        **Performance**: P95 < 200ms
+      tags:
+        - Discovery
+      parameters:
+        - name: restaurantId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Unique restaurant identifier
+          example: R1
+        - name: sectorId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Sector within restaurant
+          example: S1
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Reservation date (YYYY-MM-DD)
+          example: "2025-10-22"
+        - name: partySize
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+          description: Number of guests
+          example: 5
+        - name: duration
+          in: query
+          required: true
+          schema:
+            type: integer
+            multipleOf: 15
+            minimum: 30
+            maximum: 180
+          description: Duration in minutes (multiples of 15)
+          example: 90
+        - name: windowStart
+          in: query
+          schema:
+            type: string
+            pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+          description: Preferred start time (HH:mm)
+          example: "20:00"
+        - name: windowEnd
+          in: query
+          schema:
+            type: string
+            pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+          description: Preferred end time (HH:mm)
+          example: "23:45"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          description: Maximum candidates to return
+      responses:
+        '200':
+          description: Available seating options found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscoveryResponse'
+              examples:
+                singleTable:
+                  summary: Single table available
+                  value:
+                    slotMinutes: 15
+                    durationMinutes: 90
+                    candidates:
+                      - kind: single
+                        tableIds: ["T4"]
+                        start: "2025-10-22T20:00:00-03:00"
+                        end: "2025-10-22T21:30:00-03:00"
+                        score: 85.5
+                comboTables:
+                  summary: Combination required
+                  value:
+                    slotMinutes: 15
+                    durationMinutes: 90
+                    candidates:
+                      - kind: combo
+                        tableIds: ["T2", "T3"]
+                        start: "2025-10-22T20:15:00-03:00"
+                        end: "2025-10-22T21:45:00-03:00"
+                        score: 72.3
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/NoCapacity'
+        '422':
+          $ref: '#/components/responses/OutsideServiceWindow'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /woki/bookings:
+    get:
+      operationId: listBookings
+      summary: List Bookings
+      description: Retrieve all confirmed bookings for a sector on a specific date
+      tags:
+        - Bookings
+      parameters:
+        - name: restaurantId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: sectorId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [CONFIRMED, CANCELLED]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Bookings list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      operationId: createBooking
+      summary: Create Booking
+      description: |
+        Atomically create a new reservation with concurrency control.
+
+        **Features**:
+        - Lock-based double booking prevention
+        - Idempotency support
+        - WokiBrain automatic seat selection
+        - Real-time conflict detection
+
+        **Performance**: P95 < 100ms
+      tags:
+        - Bookings
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+            format: uuid
+          description: Unique key for idempotent operations (24h TTL)
+          example: 550e8400-e29b-41d4-a716-446655440000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+            examples:
+              standard:
+                summary: Standard booking
+                value:
+                  restaurantId: R1
+                  sectorId: S1
+                  partySize: 5
+                  durationMinutes: 90
+                  date: "2025-10-22"
+              withWindow:
+                summary: With time window
+                value:
+                  restaurantId: R1
+                  sectorId: S1
+                  partySize: 8
+                  durationMinutes: 120
+                  date: "2025-10-22"
+                  windowStart: "20:00"
+                  windowEnd: "22:00"
+      responses:
+        '201':
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/OutsideServiceWindow'
+
+  /woki/bookings/{bookingId}:
+    get:
+      operationId: getBooking
+      summary: Get Booking Details
+      description: Retrieve complete details of a specific booking
+      tags:
+        - Bookings
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Booking details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      operationId: updateBooking
+      summary: Modify Booking
+      description: |
+        Update booking details (party size, duration, time).
+
+        **Note**: Changing core parameters may trigger re-seat allocation.
+      tags:
+        - Bookings
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBookingRequest'
+      responses:
+        '200':
+          description: Booking updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    delete:
+      operationId: cancelBooking
+      summary: Cancel Booking
+      description: Cancel an existing booking and free up the tables
+      tags:
+        - Bookings
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Booking cancelled successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Booking already cancelled
+
+  /restaurants:
+    get:
+      operationId: listRestaurants
+      summary: List Restaurants
+      description: Get all restaurants with pagination
+      tags:
+        - Restaurants
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Restaurant list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Restaurant'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      operationId: createRestaurant
+      summary: Create Restaurant
+      description: Register a new restaurant in the system
+      tags:
+        - Restaurants
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRestaurantRequest'
+      responses:
+        '201':
+          description: Restaurant created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Restaurant'
+
+  /restaurants/{restaurantId}:
+    get:
+      operationId: getRestaurant
+      summary: Get Restaurant
+      tags:
+        - Restaurants
+      parameters:
+        - $ref: '#/components/parameters/RestaurantId'
+      responses:
+        '200':
+          description: Restaurant details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Restaurant'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /restaurants/{restaurantId}/sectors:
+    get:
+      operationId: listSectors
+      summary: List Sectors
+      tags:
+        - Restaurants
+      parameters:
+        - $ref: '#/components/parameters/RestaurantId'
+      responses:
+        '200':
+          description: Sector list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sector'
+
+  /restaurants/{restaurantId}/analytics:
+    get:
+      operationId: getRestaurantAnalytics
+      summary: Restaurant Analytics
+      description: |
+        Get business intelligence metrics:
+        - Occupancy rates
+        - Revenue trends
+        - Popular time slots
+        - Table utilization
+        - No-show rates
+      tags:
+        - Analytics
+      parameters:
+        - $ref: '#/components/parameters/RestaurantId'
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: groupBy
+          in: query
+          schema:
+            type: string
+            enum: [hour, day, week, month]
+            default: day
+      responses:
+        '200':
+          description: Analytics data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsResponse'
+
+  /tables:
+    post:
+      operationId: createTable
+      summary: Create Table
+      description: Add a new table to a sector
+      tags:
+        - Tables
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTableRequest'
+      responses:
+        '201':
+          description: Table created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Table'
+
+  /tables/{tableId}:
+    get:
+      operationId: getTable
+      summary: Get Table
+      tags:
+        - Tables
+      parameters:
+        - name: tableId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Table details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Table'
+
+    patch:
+      operationId: updateTable
+      summary: Update Table
+      tags:
+        - Tables
+      parameters:
+        - name: tableId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTableRequest'
+      responses:
+        '200':
+          description: Table updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Table'
+
+  /webhooks:
+    post:
+      operationId: createWebhook
+      summary: Subscribe to Events
+      description: Register a webhook for real-time event notifications
+      tags:
+        - Webhooks
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookRequest'
+      responses:
+        '201':
+          description: Webhook created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    get:
+      operationId: listWebhooks
+      summary: List Webhooks
+      description: Get all registered webhooks
+      tags:
+        - Webhooks
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: List of webhooks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Webhook'
+  /webhooks/{webhookId}:
+    get:
+      operationId: getWebhook
+      summary: Get Webhook
+      description: Get a specific webhook by ID
+      tags:
+        - Webhooks
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Webhook details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateWebhook
+      summary: Update Webhook
+      description: Update a webhook's URL, events, or status
+      tags:
+        - Webhooks
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWebhookRequest'
+      responses:
+        '200':
+          description: Webhook updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteWebhook
+      summary: Delete Webhook
+      description: Delete a webhook subscription
+      tags:
+        - Webhooks
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Webhook deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Webhook deleted successfully.
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health Check
+      description: Basic health status
+      tags:
+        - Health
+      responses:
+        '200':
+          description: System healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  version:
+                    type: string
+                    example: 1.0.0
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /health/ready:
+    get:
+      operationId: readinessCheck
+      summary: Readiness Check
+      description: Check if service is ready to accept traffic
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ready
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: ok
+        '503':
+          description: Service not ready
+
+  /admin/info:
+    get:
+      operationId: getAdminInfo
+      summary: Get Admin Endpoints Info
+      description: |
+        Get information about admin endpoints and how to use them.
+
+        **No authentication required** - This endpoint is public for documentation purposes.
+      tags:
+        - Admin
+      responses:
+        '200':
+          description: Admin endpoints information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: WokiBrain Admin API
+                  endpoints:
+                    type: object
+                  note:
+                    type: string
+
+  /admin/seed:
+    post:
+      operationId: seedDatabase
+      summary: Seed Database
+      description: |
+        Seed the database with sample data for testing.
+
+        Creates:
+        - Restaurant R1 (Bistro Central)
+        - Sector S1 (Main Hall)
+        - Tables T1-T5
+        - Booking B1
+
+        **Authentication**: Requires `X-Admin-Secret` header or `?secret=` query parameter.
+      tags:
+        - Admin
+      parameters:
+        - name: secret
+          in: query
+          schema:
+            type: string
+          description: Admin secret (alternative to header)
+      security:
+        - AdminSecret: []
+      responses:
+        '200':
+          description: Database seeded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Database seeded successfully
+                  data:
+                    type: object
+                    properties:
+                      restaurantId:
+                        type: string
+                        example: R1
+                      sectorId:
+                        type: string
+                        example: S1
+                      tableIds:
+                        type: array
+                        items:
+                          type: string
+                        example: ["T1", "T2", "T3", "T4", "T5"]
+                      bookingId:
+                        type: string
+                        example: B1
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/restaurants:
+    post:
+      operationId: createRestaurant
+      summary: Create Restaurant
+      description: |
+        Create a new restaurant.
+
+        **Authentication**: Requires `X-Admin-Secret` header or `?secret=` query parameter.
+      tags:
+        - Admin
+      security:
+        - AdminSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRestaurantRequest'
+            example:
+              id: R1
+              name: Bistro Central
+              timezone: America/Argentina/Buenos_Aires
+              windows:
+                - start: "12:00"
+                  end: "16:00"
+                - start: "20:00"
+                  end: "23:45"
+      responses:
+        '201':
+          description: Restaurant created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Restaurant'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/sectors:
+    post:
+      operationId: createSector
+      summary: Create Sector
+      description: |
+        Create a new sector within a restaurant.
+
+        **Authentication**: Requires `X-Admin-Secret` header or `?secret=` query parameter.
+      tags:
+        - Admin
+      security:
+        - AdminSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - restaurantId
+                - name
+              properties:
+                id:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                  example: S1
+                restaurantId:
+                  type: string
+                  example: R1
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: Main Hall
+            example:
+              id: S1
+              restaurantId: R1
+              name: Main Hall
+      responses:
+        '201':
+          description: Sector created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sector'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/tables:
+    post:
+      operationId: createTable
+      summary: Create Table
+      description: |
+        Create a new table within a sector.
+
+        **Authentication**: Requires `X-Admin-Secret` header or `?secret=` query parameter.
+      tags:
+        - Admin
+      security:
+        - AdminSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - sectorId
+                - name
+                - capacityMin
+                - capacityMax
+              properties:
+                id:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                  example: T1
+                sectorId:
+                  type: string
+                  example: S1
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: Table 1
+                capacityMin:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                  example: 2
+                capacityMax:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                  example: 4
+            example:
+              id: T1
+              sectorId: S1
+              name: Table 1
+              capacityMin: 2
+              capacityMax: 4
+      responses:
+        '201':
+          description: Table created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Table'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    RestaurantId:
+      name: restaurantId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Restaurant unique identifier
+      example: R1
+
+  schemas:
+    DiscoveryResponse:
+      type: object
+      required:
+        - slotMinutes
+        - durationMinutes
+        - candidates
+      properties:
+        slotMinutes:
+          type: integer
+          description: Time grid granularity
+          example: 15
+        durationMinutes:
+          type: integer
+          description: Requested duration
+          example: 90
+        candidates:
+          type: array
+          description: Available seating options
+          items:
+            $ref: '#/components/schemas/Candidate'
+
+    Candidate:
+      type: object
+      required:
+        - kind
+        - tableIds
+        - start
+        - end
+      properties:
+        kind:
+          type: string
+          enum: [single, combo]
+          description: Single table or combination
+        tableIds:
+          type: array
+          items:
+            type: string
+          description: Table identifiers
+          example: ["T4"]
+        start:
+          type: string
+          format: date-time
+          description: Booking start time (ISO 8601)
+        end:
+          type: string
+          format: date-time
+          description: Booking end time (ISO 8601)
+        score:
+          type: number
+          format: double
+          description: WokiBrain selection score (0-100)
+          example: 85.5
+
+    CreateBookingRequest:
+      type: object
+      required:
+        - restaurantId
+        - sectorId
+        - partySize
+        - durationMinutes
+        - date
+      properties:
+        restaurantId:
+          type: string
+          example: R1
+        sectorId:
+          type: string
+          example: S1
+        partySize:
+          type: integer
+          minimum: 1
+          maximum: 50
+          example: 5
+        durationMinutes:
+          type: integer
+          multipleOf: 15
+          minimum: 30
+          maximum: 180
+          example: 90
+        date:
+          type: string
+          format: date
+          example: "2025-10-22"
+        windowStart:
+          type: string
+          pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+          example: "20:00"
+        windowEnd:
+          type: string
+          pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+          example: "23:45"
+        guestName:
+          type: string
+          maxLength: 100
+          example: "Juan Pérez"
+        guestPhone:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+          example: "+5491112345678"
+        guestEmail:
+          type: string
+          format: email
+          example: "juan@example.com"
+        notes:
+          type: string
+          maxLength: 500
+          example: "Birthday celebration"
+
+    UpdateBookingRequest:
+      type: object
+      properties:
+        partySize:
+          type: integer
+          minimum: 1
+        durationMinutes:
+          type: integer
+          multipleOf: 15
+        notes:
+          type: string
+
+    Booking:
+      type: object
+      required:
+        - id
+        - restaurantId
+        - sectorId
+        - tableIds
+        - partySize
+        - start
+        - end
+        - durationMinutes
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        restaurantId:
+          type: string
+          example: R1
+        sectorId:
+          type: string
+          example: S1
+        tableIds:
+          type: array
+          items:
+            type: string
+          example: ["T4"]
+        partySize:
+          type: integer
+          example: 5
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        durationMinutes:
+          type: integer
+          example: 90
+        status:
+          type: string
+          enum: [CONFIRMED, CANCELLED]
+          example: CONFIRMED
+        guestName:
+          type: string
+          nullable: true
+        guestPhone:
+          type: string
+          nullable: true
+        guestEmail:
+          type: string
+          format: email
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BookingListResponse:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        bookings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Booking'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Restaurant:
+      type: object
+      required:
+        - id
+        - name
+        - timezone
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          example: R1
+        name:
+          type: string
+          example: Bistro Central
+        timezone:
+          type: string
+          description: IANA timezone
+          example: America/Argentina/Buenos_Aires
+        windows:
+          type: array
+          items:
+            type: object
+            properties:
+              start:
+                type: string
+                pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+                example: "20:00"
+              end:
+                type: string
+                pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+                example: "23:45"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateRestaurantRequest:
+      type: object
+      required:
+        - name
+        - timezone
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        timezone:
+          type: string
+        windows:
+          type: array
+          items:
+            type: object
+            required:
+              - start
+              - end
+            properties:
+              start:
+                type: string
+              end:
+                type: string
+
+    Sector:
+      type: object
+      properties:
+        id:
+          type: string
+        restaurantId:
+          type: string
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Table:
+      type: object
+      properties:
+        id:
+          type: string
+        sectorId:
+          type: string
+        name:
+          type: string
+        minSize:
+          type: integer
+        maxSize:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateTableRequest:
+      type: object
+      required:
+        - sectorId
+        - name
+        - minSize
+        - maxSize
+      properties:
+        sectorId:
+          type: string
+        name:
+          type: string
+        minSize:
+          type: integer
+          minimum: 1
+        maxSize:
+          type: integer
+          minimum: 1
+
+    UpdateTableRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        minSize:
+          type: integer
+        maxSize:
+          type: integer
+
+    AnalyticsResponse:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            start:
+              type: string
+              format: date
+            end:
+              type: string
+              format: date
+        metrics:
+          type: object
+          properties:
+            totalBookings:
+              type: integer
+              example: 1453
+            occupancyRate:
+              type: number
+              format: double
+              example: 78.5
+            averagePartySize:
+              type: number
+              format: double
+              example: 3.8
+            peakHours:
+              type: array
+              items:
+                type: object
+                properties:
+                  hour:
+                    type: string
+                    example: "20:00"
+                  bookings:
+                    type: integer
+                    example: 45
+        trends:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              bookings:
+                type: integer
+              revenue:
+                type: number
+                format: double
+
+    CreateWebhookRequest:
+      type: object
+      required:
+        - url
+        - events
+      properties:
+        url:
+          type: string
+          format: uri
+          example: https://myapp.com/webhooks/wokibrain
+        events:
+          type: array
+          items:
+            type: string
+            enum:
+              - booking.created
+              - booking.updated
+              - booking.cancelled
+              - table.unavailable
+          example: ["booking.created", "booking.cancelled"]
+        secret:
+          type: string
+          description: Webhook signature secret
+
+    UpdateWebhookRequest:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          example: https://myapp.com/webhooks/wokibrain
+        events:
+          type: array
+          items:
+            type: string
+            enum:
+              - booking.created
+              - booking.updated
+              - booking.cancelled
+              - table.unavailable
+          minItems: 1
+          example:
+            - booking.created
+            - booking.cancelled
+        active:
+          type: boolean
+          example: true
+
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 145
+        totalPages:
+          type: integer
+          example: 8
+
+    Error:
+      type: object
+      required:
+        - error
+        - detail
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+          example: VALIDATION_ERROR
+        detail:
+          type: string
+          description: Human-readable error message
+          example: Invalid input data
+        issues:
+          type: array
+          description: Validation error details
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+                example: partySize
+              message:
+                type: string
+                example: Must be a positive integer
+        requestId:
+          type: string
+          format: uuid
+          description: Request ID for support
+          example: 550e8400-e29b-41d4-a716-446655440000
+
+  responses:
+    BadRequest:
+      description: Invalid input data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: VALIDATION_ERROR
+            detail: Invalid input data
+            issues:
+              - path: partySize
+                message: Must be a positive integer
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: NOT_FOUND
+            detail: Restaurant with id R1 not found
+
+    Conflict:
+      description: Conflict with existing data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: CONFLICT
+            detail: Selected tables are no longer available
+
+    NoCapacity:
+      description: No capacity available
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: NO_CAPACITY
+            detail: No capacity available for the requested parameters
+
+    OutsideServiceWindow:
+      description: Request outside service hours
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: OUTSIDE_SERVICE_WINDOW
+            detail: Requested time is outside service window
+
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: RATE_LIMIT_EXCEEDED
+            detail: Too many requests
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+    AdminSecret:
+      type: apiKey
+      in: header
+      name: X-Admin-Secret
+      description: Admin secret for administrative endpoints. Can also be provided as query parameter `?secret=`
+
+security:
+  - ApiKeyAuth: []
+

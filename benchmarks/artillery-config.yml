@@ -1,0 +1,109 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - name: Warm up
+      duration: 60
+      arrivalRate: 10
+      rampTo: 50
+    - name: Sustained Load
+      duration: 300
+      arrivalRate: 100
+    - name: Spike
+      duration: 60
+      arrivalRate: 500
+    - name: Cool down
+      duration: 60
+      arrivalRate: 10
+  processor: './artillery-processor.js'
+  plugins:
+    expect: {}
+    metrics-by-endpoint: {}
+  ensure:
+    maxErrorRate: 5
+    p95: 500
+    p99: 1000
+
+scenarios:
+  - name: 'Health Check Flow'
+    weight: 10
+    flow:
+      - get:
+          url: '/api/v1/health'
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: status
+
+  - name: 'Discovery Flow'
+    weight: 40
+    flow:
+      - get:
+          url: '/api/v1/woki/discover'
+          qs:
+            restaurantId: 'R1'
+            sectorId: 'S1'
+            date: '{{ $randomDate }}'
+            partySize: '{{ $randomPartySize }}'
+            duration: '{{ $randomDuration }}'
+            windowStart: '20:00'
+            windowEnd: '23:45'
+          expect:
+            - statusCode: [200, 409]
+          capture:
+            - json: '$.candidates[0]'
+              as: 'firstCandidate'
+
+  - name: 'Complete Booking Flow'
+    weight: 40
+    flow:
+      - get:
+          url: '/api/v1/woki/discover'
+          qs:
+            restaurantId: 'R1'
+            sectorId: 'S1'
+            date: '2025-10-22'
+            partySize: 4
+            duration: 90
+          capture:
+            - json: '$.candidates[0]'
+              as: 'candidate'
+
+      - post:
+          url: '/api/v1/woki/bookings'
+          headers:
+            Content-Type: 'application/json'
+            Idempotency-Key: '{{ $uuid }}'
+          json:
+            restaurantId: 'R1'
+            sectorId: 'S1'
+            partySize: 4
+            durationMinutes: 90
+            date: '2025-10-22'
+          expect:
+            - statusCode: [201, 409]
+          capture:
+            - json: '$.id'
+              as: 'bookingId'
+
+      - get:
+          url: '/api/v1/woki/bookings/{{ bookingId }}'
+          ifTrue: 'bookingId'
+          expect:
+            - statusCode: [200, 404]
+
+  - name: 'List and Query Flow'
+    weight: 10
+    flow:
+      - get:
+          url: '/api/v1/woki/bookings'
+          qs:
+            restaurantId: 'R1'
+            sectorId: 'S1'
+            date: '2025-10-22'
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: bookings
+
+
+

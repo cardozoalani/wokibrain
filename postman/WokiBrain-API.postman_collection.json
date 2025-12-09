@@ -1,0 +1,1257 @@
+{
+  "info": {
+    "name": "WokiBrain API - Complete Collection",
+    "description": "Enterprise-grade restaurant booking engine with Event Sourcing, CQRS & 1M+ bookings/day capacity.\n\n## Features\n- Event Sourcing\n- CQRS Architecture\n- Redis Caching\n- Distributed Locks\n- Idempotency\n- Multi-Protocol Support\n\n## Authentication\nProduction requires `X-API-Key` header.\n\n## Environments\n- Local: http://localhost:3000\n- Production: https://wokibrain.grgcrew.com/api/v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "1"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "value",
+        "value": "{{api_key}}",
+        "type": "string"
+      },
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script",
+          "const baseUrl = pm.environment.get('base_url');",
+          "",
+          "// Generate UUID for idempotency",
+          "if (!pm.variables.get('idempotency_key')) {",
+          "    pm.variables.set('idempotency_key', pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "",
+          "// Set timestamp",
+          "pm.variables.set('timestamp', new Date().toISOString());",
+          "",
+          "// Set future date (7 days from now)",
+          "const futureDate = new Date();",
+          "futureDate.setDate(futureDate.getDate() + 7);",
+          "pm.variables.set('future_date', futureDate.toISOString().split('T')[0]);",
+          "",
+          "// Random party size (2-8)",
+          "pm.variables.set('random_party_size', Math.floor(Math.random() * 7) + 2);",
+          "",
+          "// Random duration (60, 90, or 120)",
+          "const durations = [60, 90, 120];",
+          "pm.variables.set('random_duration', durations[Math.floor(Math.random() * durations.length)]);",
+          "",
+          "console.log('🔄 Pre-request executed:', {",
+          "    idempotency_key: pm.variables.get('idempotency_key'),",
+          "    timestamp: pm.variables.get('timestamp'),",
+          "    future_date: pm.variables.get('future_date')",
+          "});"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script",
+          "pm.test('Response time is acceptable', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+          "});",
+          "",
+          "pm.test('Content-Type is present', function () {",
+          "    pm.response.to.have.header('Content-Type');",
+          "});",
+          "",
+          "pm.test('No critical errors', function () {",
+          "    pm.expect(pm.response.code).to.not.be.oneOf([500, 502, 503, 504]);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "restaurant_id",
+      "value": "R1",
+      "type": "string"
+    },
+    {
+      "key": "sector_id",
+      "value": "S1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Monitoring",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has correct structure', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData).to.have.property('version');",
+                  "    pm.expect(jsonData).to.have.property('timestamp');",
+                  "});",
+                  "",
+                  "pm.test('Status is ok', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql('ok');",
+                  "});",
+                  "",
+                  "pm.test('Response time < 50ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(50);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Basic health check endpoint"
+          }
+        },
+        {
+          "name": "Readiness Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 (ready) or 503 (not ready)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 503]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Database check is ok', function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.checks.database).to.eql('ok');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/ready",
+              "host": ["{{base_url}}"],
+              "path": ["health", "ready"]
+            }
+          }
+        },
+        {
+          "name": "Liveness Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/live",
+              "host": ["{{base_url}}"],
+              "path": ["health", "live"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Discovery",
+      "item": [
+        {
+          "name": "Discover Seats - Basic",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 409', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 409]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Response has candidates', function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.have.property('candidates');",
+                  "        pm.expect(jsonData.candidates).to.be.an('array');",
+                  "    });",
+                  "    ",
+                  "    pm.test('Slot minutes is 15', function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.slotMinutes).to.eql(15);",
+                  "    });",
+                  "    ",
+                  "    pm.test('Duration matches request', function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.durationMinutes).to.eql(90);",
+                  "    });",
+                  "    ",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.candidates && jsonData.candidates.length > 0) {",
+                  "        pm.test('Candidates have required fields', function () {",
+                  "            const candidate = jsonData.candidates[0];",
+                  "            pm.expect(candidate).to.have.property('kind');",
+                  "            pm.expect(candidate).to.have.property('tableIds');",
+                  "            pm.expect(candidate).to.have.property('start');",
+                  "            pm.expect(candidate).to.have.property('end');",
+                  "        });",
+                  "        ",
+                  "        // Save first candidate for booking",
+                  "        pm.collectionVariables.set('best_candidate_start', jsonData.candidates[0].start);",
+                  "        pm.collectionVariables.set('best_candidate_end', jsonData.candidates[0].end);",
+                  "        pm.collectionVariables.set('best_candidate_tables', JSON.stringify(jsonData.candidates[0].tableIds));",
+                  "    }",
+                  "} else if (pm.response.code === 409) {",
+                  "    pm.test('No capacity error is correct', function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.error).to.eql('NO_CAPACITY');",
+                  "    });",
+                  "}",
+                  "",
+                  "pm.test('Response time < 300ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(300);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/woki/discover?restaurantId={{restaurant_id}}&sectorId={{sector_id}}&date=2025-10-22&partySize=5&duration=90&windowStart=20:00&windowEnd=23:45",
+              "host": ["{{base_url}}"],
+              "path": ["woki", "discover"],
+              "query": [
+                { "key": "restaurantId", "value": "{{restaurant_id}}" },
+                { "key": "sectorId", "value": "{{sector_id}}" },
+                { "key": "date", "value": "2025-10-22" },
+                { "key": "partySize", "value": "5" },
+                { "key": "duration", "value": "90" },
+                { "key": "windowStart", "value": "20:00" },
+                { "key": "windowEnd", "value": "23:45" }
+              ]
+            },
+            "description": "Find available seating options for a party of 5, 90 minutes duration"
+          }
+        },
+        {
+          "name": "Discover Seats - Variable Party Size",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Use random party size from global script",
+                  "console.log('Party size:', pm.variables.get('random_party_size'));",
+                  "console.log('Duration:', pm.variables.get('random_duration'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response is valid', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 409, 422]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/woki/discover?restaurantId={{restaurant_id}}&sectorId={{sector_id}}&date={{future_date}}&partySize={{random_party_size}}&duration={{random_duration}}",
+              "host": ["{{base_url}}"],
+              "path": ["woki", "discover"],
+              "query": [
+                { "key": "restaurantId", "value": "{{restaurant_id}}" },
+                { "key": "sectorId", "value": "{{sector_id}}" },
+                { "key": "date", "value": "{{future_date}}" },
+                { "key": "partySize", "value": "{{random_party_size}}" },
+                { "key": "duration", "value": "{{random_duration}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Discover Seats - Large Party (Combo Tables)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Response includes combo candidates', function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        const comboCandidates = jsonData.candidates.filter(c => c.kind === 'combo');",
+                  "        pm.expect(comboCandidates.length).to.be.above(0);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/woki/discover?restaurantId={{restaurant_id}}&sectorId={{sector_id}}&date=2025-10-22&partySize=8&duration=120",
+              "host": ["{{base_url}}"],
+              "path": ["woki", "discover"],
+              "query": [
+                { "key": "restaurantId", "value": "{{restaurant_id}}" },
+                { "key": "sectorId", "value": "{{sector_id}}" },
+                { "key": "date", "value": "2025-10-22" },
+                { "key": "partySize", "value": "8" },
+                { "key": "duration", "value": "120" }
+              ]
+            },
+            "description": "Discover seats for large party (requires table combinations)"
+          }
+        }
+      ],
+      "description": "Seat availability discovery endpoints"
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Create Booking - Simple",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate unique idempotency key",
+                  "pm.collectionVariables.set('current_idempotency_key', pm.variables.replaceIn('{{$guid}}'));",
+                  "console.log('Idempotency Key:', pm.collectionVariables.get('current_idempotency_key'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 (created) or 409 (conflict)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 409]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    pm.test('Booking created successfully', function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        ",
+                  "        pm.expect(jsonData).to.have.property('id');",
+                  "        pm.expect(jsonData).to.have.property('restaurantId');",
+                  "        pm.expect(jsonData).to.have.property('sectorId');",
+                  "        pm.expect(jsonData).to.have.property('tableIds');",
+                  "        pm.expect(jsonData).to.have.property('status');",
+                  "        ",
+                  "        pm.expect(jsonData.status).to.eql('CONFIRMED');",
+                  "        pm.expect(jsonData.partySize).to.eql(4);",
+                  "        pm.expect(jsonData.durationMinutes).to.eql(90);",
+                  "    });",
+                  "    ",
+                  "    // Save booking ID for later use",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('last_booking_id', jsonData.id);",
+                  "    pm.collectionVariables.set('last_booking_restaurant', jsonData.restaurantId);",
+                  "    pm.collectionVariables.set('last_booking_sector', jsonData.sectorId);",
+                  "    ",
+                  "    console.log('✅ Booking created:', jsonData.id);",
+                  "} else if (pm.response.code === 409) {",
+                  "    pm.test('Conflict error is correct', function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.error).to.be.oneOf(['NO_CAPACITY', 'CONFLICT']);",
+                  "    });",
+                  "}",
+                  "",
+                  "pm.test('Response time < 300ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(300);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{current_idempotency_key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"restaurantId\": \"{{restaurant_id}}\",\n  \"sectorId\": \"{{sector_id}}\",\n  \"partySize\": 4,\n  \"durationMinutes\": 90,\n  \"date\": \"{{future_date}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/woki/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["woki", "bookings"]
+            },
+            "description": "Create a new booking with automatic seat selection"
+          }
+        },
+        {
+          "name": "Create Booking - With Guest Info",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('guest_idempotency_key', pm.variables.replaceIn('{{$guid}}'));",
+                  "pm.variables.set('guest_name', 'Juan Pérez');",
+                  "pm.variables.set('guest_email', 'juan.perez@example.com');",
+                  "pm.variables.set('guest_phone', '+5491112345678');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('guest_booking_id', jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{guest_idempotency_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"restaurantId\": \"{{restaurant_id}}\",\n  \"sectorId\": \"{{sector_id}}\",\n  \"partySize\": 6,\n  \"durationMinutes\": 120,\n  \"date\": \"{{future_date}}\",\n  \"guestName\": \"{{guest_name}}\",\n  \"guestEmail\": \"{{guest_email}}\",\n  \"guestPhone\": \"{{guest_phone}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/woki/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["woki", "bookings"]
+            }
+          }
+        },
+        {
+          "name": "Test Idempotency - Same Key Twice",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Use same idempotency key as previous request",
+                  "const key = pm.collectionVariables.get('current_idempotency_key');",
+                  "console.log('Reusing idempotency key:', key);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns same booking (idempotent)', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const originalId = pm.collectionVariables.get('last_booking_id');",
+                  "    ",
+                  "    if (originalId && jsonData.id) {",
+                  "        pm.expect(jsonData.id).to.eql(originalId);",
+                  "        console.log('✅ Idempotency working: Same booking ID returned');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{current_idempotency_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"restaurantId\": \"{{restaurant_id}}\",\n  \"sectorId\": \"{{sector_id}}\",\n  \"partySize\": 4,\n  \"durationMinutes\": 90,\n  \"date\": \"{{future_date}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/woki/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["woki", "bookings"]
+            },
+            "description": "Test idempotency by using the same idempotency key"
+          }
+        },
+        {
+          "name": "Get Booking by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 404', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Booking has all fields', function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.have.all.keys(",
+                  "            'id', 'restaurantId', 'sectorId', 'tableIds',",
+                  "            'partySize', 'start', 'end', 'durationMinutes',",
+                  "            'status', 'createdAt', 'updatedAt'",
+                  "        );",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/woki/bookings/{{last_booking_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["woki", "bookings", "{{last_booking_id}}"]
+            }
+          }
+        },
+        {
+          "name": "List Bookings for Date",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has date and bookings', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('date');",
+                  "    pm.expect(jsonData).to.have.property('bookings');",
+                  "    pm.expect(jsonData.bookings).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Date matches request', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.date).to.eql('2025-10-22');",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "console.log(`📊 Found ${jsonData.bookings.length} bookings for date`);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/woki/bookings?restaurantId={{restaurant_id}}&sectorId={{sector_id}}&date=2025-10-22",
+              "host": ["{{base_url}}"],
+              "path": ["woki", "bookings"],
+              "query": [
+                { "key": "restaurantId", "value": "{{restaurant_id}}" },
+                { "key": "sectorId", "value": "{{sector_id}}" },
+                { "key": "date", "value": "2025-10-22" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel Booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 204 (deleted) or 404 (not found)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 204) {",
+                  "    console.log('✅ Booking cancelled successfully');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/woki/bookings/{{last_booking_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["woki", "bookings", "{{last_booking_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Validation & Error Handling",
+      "item": [
+        {
+          "name": "Invalid Party Size (Negative)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 (validation error)', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error message is correct', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"restaurantId\": \"R1\",\n  \"sectorId\": \"S1\",\n  \"partySize\": -5,\n  \"durationMinutes\": 90,\n  \"date\": \"2025-10-22\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/woki/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["woki", "bookings"]
+            },
+            "description": "Test validation with negative party size"
+          }
+        },
+        {
+          "name": "Invalid Duration (Not Multiple of 15)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"restaurantId\": \"R1\",\n  \"sectorId\": \"S1\",\n  \"partySize\": 4,\n  \"durationMinutes\": 85,\n  \"date\": \"2025-10-22\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/woki/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["woki", "bookings"]
+            }
+          }
+        },
+        {
+          "name": "Non-existent Restaurant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Error is NOT_FOUND', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.eql('NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/woki/discover?restaurantId=NONEXISTENT&sectorId=S1&date=2025-10-22&partySize=4&duration=90",
+              "host": ["{{base_url}}"],
+              "path": ["woki", "discover"],
+              "query": [
+                { "key": "restaurantId", "value": "NONEXISTENT" },
+                { "key": "sectorId", "value": "S1" },
+                { "key": "date", "value": "2025-10-22" },
+                { "key": "partySize", "value": "4" },
+                { "key": "duration", "value": "90" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Outside Service Window",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 422 or 409', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([422, 409]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 422) {",
+                  "    pm.test('Error is OUTSIDE_SERVICE_WINDOW', function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.error).to.eql('OUTSIDE_SERVICE_WINDOW');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"restaurantId\": \"R1\",\n  \"sectorId\": \"S1\",\n  \"partySize\": 4,\n  \"durationMinutes\": 90,\n  \"date\": \"2025-10-22\",\n  \"windowStart\": \"02:00\",\n  \"windowEnd\": \"04:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/woki/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["woki", "bookings"]
+            },
+            "description": "Test requesting a booking outside service hours (2am-4am)"
+          }
+        }
+      ],
+      "description": "Error handling and validation tests"
+    },
+    {
+      "name": "Workflows",
+      "item": [
+        {
+          "name": "Complete Booking Flow",
+          "item": [
+            {
+              "name": "1. Discover Available Seats",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const jsonData = pm.response.json();",
+                      "    if (jsonData.candidates && jsonData.candidates.length > 0) {",
+                      "        pm.collectionVariables.set('flow_candidate_start', jsonData.candidates[0].start);",
+                      "        console.log('✅ Step 1: Found', jsonData.candidates.length, 'candidates');",
+                      "    }",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/woki/discover?restaurantId={{restaurant_id}}&sectorId={{sector_id}}&date={{future_date}}&partySize=4&duration=90",
+                  "host": ["{{base_url}}"],
+                  "path": ["woki", "discover"],
+                  "query": [
+                    { "key": "restaurantId", "value": "{{restaurant_id}}" },
+                    { "key": "sectorId", "value": "{{sector_id}}" },
+                    { "key": "date", "value": "{{future_date}}" },
+                    { "key": "partySize", "value": "4" },
+                    { "key": "duration", "value": "90" }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "2. Create Booking",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "pm.collectionVariables.set('flow_idempotency_key', pm.variables.replaceIn('{{$guid}}'));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.collectionVariables.set('flow_booking_id', jsonData.id);",
+                      "    console.log('✅ Step 2: Booking created:', jsonData.id);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Idempotency-Key",
+                    "value": "{{flow_idempotency_key}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"restaurantId\": \"{{restaurant_id}}\",\n  \"sectorId\": \"{{sector_id}}\",\n  \"partySize\": 4,\n  \"durationMinutes\": 90,\n  \"date\": \"{{future_date}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/woki/bookings",
+                  "host": ["{{base_url}}"],
+                  "path": ["woki", "bookings"]
+                }
+              }
+            },
+            {
+              "name": "3. Verify Booking Created",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Booking retrieved successfully', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.id).to.eql(pm.collectionVariables.get('flow_booking_id'));",
+                      "    console.log('✅ Step 3: Booking verified');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/woki/bookings/{{flow_booking_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["woki", "bookings", "{{flow_booking_id}}"]
+                }
+              }
+            },
+            {
+              "name": "4. Cancel Booking",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Booking cancelled', function () {",
+                      "    pm.response.to.have.status(204);",
+                      "    console.log('✅ Step 4: Booking cancelled');",
+                      "    console.log('');",
+                      "    console.log('🎉 Complete workflow successful!');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/woki/bookings/{{flow_booking_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["woki", "bookings", "{{flow_booking_id}}"]
+                }
+              }
+            }
+          ],
+          "description": "Complete user flow: Discover → Create → Verify → Cancel"
+        }
+      ]
+    },
+    {
+      "name": "Performance Testing",
+      "item": [
+        {
+          "name": "Rapid Fire - 10 Discoveries",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response time < 500ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});",
+                  "",
+                  "// Track average response time",
+                  "let responseTimes = pm.collectionVariables.get('response_times') || [];",
+                  "responseTimes.push(pm.response.responseTime);",
+                  "pm.collectionVariables.set('response_times', responseTimes);",
+                  "",
+                  "if (responseTimes.length === 10) {",
+                  "    const avg = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;",
+                  "    console.log('📊 Average response time over 10 requests:', avg.toFixed(2), 'ms');",
+                  "    pm.collectionVariables.set('response_times', []);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/woki/discover?restaurantId={{restaurant_id}}&sectorId={{sector_id}}&date=2025-10-22&partySize=4&duration=90",
+              "host": ["{{base_url}}"],
+              "path": ["woki", "discover"],
+              "query": [
+                { "key": "restaurantId", "value": "{{restaurant_id}}" },
+                { "key": "sectorId", "value": "{{sector_id}}" },
+                { "key": "date", "value": "2025-10-22" },
+                { "key": "partySize", "value": "4" },
+                { "key": "duration", "value": "90" }
+              ]
+            },
+            "description": "Run this 10 times with Collection Runner to test performance"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin (Setup & Testing)",
+      "description": "Administrative endpoints for setting up test data. Required for interviewers to populate the database.",
+      "item": [
+        {
+          "name": "Get Admin Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/info",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "info"]
+            },
+            "description": "Get information about admin endpoints (no auth required)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has endpoints info', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('endpoints');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seed Database",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Admin-Secret",
+                "value": "{{admin_secret}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/seed",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "seed"]
+            },
+            "description": "Seed database with sample data (R1, S1, T1-T5, B1). Quick setup for testing."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Database seeded successfully', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.have.property('restaurantId');",
+                  "    pm.expect(jsonData.data).to.have.property('sectorId');",
+                  "    pm.expect(jsonData.data).to.have.property('tableIds');",
+                  "    ",
+                  "    // Save IDs for later use",
+                  "    pm.collectionVariables.set('restaurant_id', jsonData.data.restaurantId);",
+                  "    pm.collectionVariables.set('sector_id', jsonData.data.sectorId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Restaurant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-Admin-Secret",
+                "value": "{{admin_secret}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"R1\",\n  \"name\": \"Bistro Central\",\n  \"timezone\": \"America/Argentina/Buenos_Aires\",\n  \"windows\": [\n    {\"start\": \"12:00\", \"end\": \"16:00\"},\n    {\"start\": \"20:00\", \"end\": \"23:45\"}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/restaurants",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "restaurants"]
+            },
+            "description": "Create a new restaurant"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Restaurant created', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('name');",
+                  "    pm.expect(jsonData).to.have.property('timezone');",
+                  "    ",
+                  "    pm.collectionVariables.set('restaurant_id', jsonData.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Sector",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-Admin-Secret",
+                "value": "{{admin_secret}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"S1\",\n  \"restaurantId\": \"{{restaurant_id}}\",\n  \"name\": \"Main Hall\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/sectors",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "sectors"]
+            },
+            "description": "Create a new sector within a restaurant"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Sector created', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('restaurantId');",
+                  "    pm.expect(jsonData).to.have.property('name');",
+                  "    ",
+                  "    pm.collectionVariables.set('sector_id', jsonData.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Table",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-Admin-Secret",
+                "value": "{{admin_secret}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"T1\",\n  \"sectorId\": \"{{sector_id}}\",\n  \"name\": \"Table 1\",\n  \"capacityMin\": 2,\n  \"capacityMax\": 4\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/tables",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "tables"]
+            },
+            "description": "Create a new table within a sector"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Table created', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('sectorId');",
+                  "    pm.expect(jsonData).to.have.property('name');",
+                  "    pm.expect(jsonData).to.have.property('capacity');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Documentation",
+      "item": [
+        {
+          "name": "Get OpenAPI Spec (YAML)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/openapi.yaml",
+              "host": ["{{base_url}}"],
+              "path": ["openapi.yaml"]
+            }
+          }
+        },
+        {
+          "name": "Get OpenAPI Spec (JSON)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/openapi.json",
+              "host": ["{{base_url}}"],
+              "path": ["openapi.json"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: wokibrain-api
+  namespace: wokibrain
+  labels:
+    app: wokibrain
+    component: api
+spec:
+  type: ClusterIP
+  selector:
+    app: wokibrain
+    component: api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+      protocol: TCP
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+      protocol: TCP
+    - name: metrics
+      port: 9464
+      targetPort: 9464
+      protocol: TCP
+  sessionAffinity: None
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wokibrain-api-headless
+  namespace: wokibrain
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: wokibrain
+    component: api
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+
+
+
