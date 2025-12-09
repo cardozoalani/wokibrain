@@ -18,6 +18,10 @@ interface Gap {
 
 export class WokiBrainSelectionService {
   selectBestCandidate(candidates: Candidate[]): Candidate | null {
+    // Validate input
+    if (!Array.isArray(candidates)) {
+      throw new Error('Candidates must be an array');
+    }
     if (candidates.length === 0) return null;
 
     const sorted = [...candidates].sort((a, b) => {
@@ -43,6 +47,20 @@ export class WokiBrainSelectionService {
     partySize: number,
     duration: Duration
   ): Candidate[] {
+    // Validate input parameters
+    if (!Array.isArray(tables)) {
+      throw new Error('Tables must be an array');
+    }
+    if (!(tableGaps instanceof Map)) {
+      throw new Error('Table gaps must be a Map');
+    }
+    if (typeof partySize !== 'number' || !Number.isFinite(partySize) || partySize <= 0) {
+      throw new Error('Party size must be a positive number');
+    }
+    if (!duration) {
+      throw new Error('Duration is required');
+    }
+
     const candidates: Candidate[] = [];
 
     for (const table of tables) {

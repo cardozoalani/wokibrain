@@ -17,7 +17,13 @@ export class MongoDBRestaurantRepository implements RestaurantRepository {
   constructor(private collection: Collection<RestaurantDocument>) {}
 
   async findById(id: string): Promise<Restaurant | null> {
-    const doc = await this.collection.findOne({ id });
+    // Validate input to prevent injection risks
+    if (!id || typeof id !== 'string' || id.trim().length === 0) {
+      return null;
+    }
+
+    // Use explicit parameter to ensure safe query
+    const doc = await this.collection.findOne({ id: id.trim() });
     return doc ? this.toDomain(doc) : null;
   }
 

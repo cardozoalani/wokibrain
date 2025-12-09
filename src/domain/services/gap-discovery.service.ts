@@ -14,6 +14,17 @@ export class GapDiscoveryService {
     timezone: Timezone,
     serviceWindow: TimeWindow | null
   ): Gap[] {
+    // Validate input parameters
+    if (!Array.isArray(bookings)) {
+      throw new Error('Bookings must be an array');
+    }
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      throw new Error('Date must be a valid Date object');
+    }
+    if (!timezone) {
+      throw new Error('Timezone is required');
+    }
+
     const confirmedBookings = bookings
       .filter((b) => b.isConfirmed())
       .map((b) => ({
@@ -46,6 +57,10 @@ export class GapDiscoveryService {
   }
 
   findComboGaps(tableGaps: Gap[][]): Gap[] {
+    // Validate input
+    if (!Array.isArray(tableGaps)) {
+      throw new Error('Table gaps must be an array');
+    }
     if (tableGaps.length === 0) return [];
     if (tableGaps.length === 1) return tableGaps[0];
 
@@ -82,6 +97,9 @@ export class GapDiscoveryService {
     }
 
     const [hours, minutes] = window.start.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      throw new Error(`Invalid window start time: ${window.start}`);
+    }
     return new Date(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes, 0);
   }
 
@@ -91,6 +109,9 @@ export class GapDiscoveryService {
     }
 
     const [hours, minutes] = window.end.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      throw new Error(`Invalid window end time: ${window.end}`);
+    }
     return new Date(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes, 0);
   }
 

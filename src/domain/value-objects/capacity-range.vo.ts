@@ -12,6 +12,16 @@ export class CapacityRange extends ValueObject<CapacityRangeProps> {
   }
 
   static create(min: number, max: number): CapacityRange {
+    // Validate that min and max are numbers
+    if (typeof min !== 'number' || typeof max !== 'number') {
+      throw new ValidationError('Capacity min and max must be numbers', 'capacity');
+    }
+
+    // Validate that min and max are not NaN or Infinity
+    if (!Number.isFinite(min) || !Number.isFinite(max)) {
+      throw new ValidationError('Capacity min and max must be finite numbers', 'capacity');
+    }
+
     if (min <= 0 || max <= 0) {
       throw new ValidationError('Capacity must be positive', 'capacity');
     }
