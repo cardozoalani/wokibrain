@@ -16,6 +16,8 @@ COPY tsconfig.json ./
 COPY src ./src
 # Copy only necessary files for build
 COPY openapi.yaml asyncapi.yaml ./
+# Copy static documentation files
+COPY public ./public
 # Build application
 RUN npm run build
 # WebSocket documentation is now a static HTML file (public/websockets-docs.html)
