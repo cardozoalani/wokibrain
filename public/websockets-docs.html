@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WokiBrain WebSocket Integration Guide</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --primary: #6366f1;
+        --primary-dark: #4f46e5;
+        --secondary: #8b5cf6;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --error: #ef4444;
+        --bg: #0f172a;
+        --bg-light: #1e293b;
+        --bg-lighter: #334155;
+        --text: #f1f5f9;
+        --text-muted: #94a3b8;
+        --border: #475569;
+        --code-bg: #1e293b;
+        --shadow: rgba(0, 0, 0, 0.3);
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background: linear-gradient(135deg, var(--bg) 0%, var(--bg-light) 100%);
+        color: var(--text);
+        line-height: 1.6;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding: 2rem 0;
+      }
+
+      h1 {
+        font-size: 3rem;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 1rem;
+      }
+
+      .subtitle {
+        font-size: 1.25rem;
+        color: var(--text-muted);
+        margin-bottom: 2rem;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: var(--bg-lighter);
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        margin: 0.25rem;
+        border: 1px solid var(--border);
+      }
+
+      .badge.success {
+        background: rgba(16, 185, 129, 0.2);
+        border-color: var(--success);
+        color: var(--success);
+      }
+
+      .section {
+        background: var(--bg-light);
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid var(--border);
+        box-shadow: 0 4px 6px var(--shadow);
+      }
+
+      .section h2 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .section h3 {
+        font-size: 1.5rem;
+        margin: 1.5rem 0 1rem;
+        color: var(--text);
+      }
+
+      .icon {
+        font-size: 1.5rem;
+      }
+
+      .code-block {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        overflow-x: auto;
+        position: relative;
+      }
+
+      .code-block code {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        color: var(--text);
+      }
+
+      .code-block .language {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+      }
+
+      .highlight {
+        background: rgba(99, 102, 241, 0.2);
+        padding: 0.2rem 0.4rem;
+        border-radius: 0.25rem;
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+      }
+
+      .feature-card {
+        background: var(--bg-lighter);
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        border: 1px solid var(--border);
+      }
+
+      .feature-card h4 {
+        color: var(--primary);
+        margin-bottom: 0.5rem;
+      }
+
+      .event-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+      }
+
+      .event-table th,
+      .event-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .event-table th {
+        background: var(--bg-lighter);
+        color: var(--primary);
+        font-weight: 600;
+      }
+
+      .event-table tr:hover {
+        background: var(--bg-lighter);
+      }
+
+      .example-box {
+        background: var(--bg-lighter);
+        border-left: 4px solid var(--primary);
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 0.25rem;
+      }
+
+      .example-box h4 {
+        color: var(--primary);
+        margin-bottom: 0.5rem;
+      }
+
+      .warning {
+        background: rgba(245, 158, 11, 0.2);
+        border-left-color: var(--warning);
+        color: var(--warning);
+      }
+
+      .info {
+        background: rgba(99, 102, 241, 0.2);
+        border-left-color: var(--primary);
+      }
+
+      .endpoint {
+        font-family: monospace;
+        background: var(--code-bg);
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        display: inline-block;
+        margin: 0.5rem 0;
+      }
+
+      .endpoint.production {
+        color: var(--success);
+      }
+
+      .endpoint.local {
+        color: var(--warning);
+      }
+
+      footer {
+        text-align: center;
+        padding: 2rem 0;
+        color: var(--text-muted);
+        margin-top: 3rem;
+      }
+
+      footer a {
+        color: var(--primary);
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        text-decoration: underline;
+      }
+
+      @media (max-width: 768px) {
+        h1 {
+          font-size: 2rem;
+        }
+
+        .container {
+          padding: 1rem;
+        }
+
+        .section {
+          padding: 1.5rem;
+        }
+
+        .code-block {
+          padding: 1rem;
+          font-size: 0.8rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🔌 WokiBrain WebSocket API</h1>
+        <p class="subtitle">Real-time event notifications for booking updates</p>
+        <div>
+          <span class="badge success">Real-time</span>
+          <span class="badge">Socket.IO</span>
+          <span class="badge">Event-driven</span>
+          <span class="badge">Auto-reconnect</span>
+        </div>
+      </header>
+
+      <section class="section">
+        <h2><span class="icon">🚀</span> Quick Start</h2>
+        <p>
+          Connect to WokiBrain WebSocket server to receive real-time booking events. The API uses
+          Socket.IO for reliable, bidirectional communication.
+        </p>
+
+        <div class="example-box info">
+          <h4>Connection Endpoints</h4>
+          <div class="endpoint production">wss://wokibrain.grgcrew.com/ws</div>
+          <div class="endpoint local">ws://localhost:3000/ws</div>
+        </div>
+
+        <div class="code-block">
+          <span class="language">JavaScript</span>
+          <code>
+            <pre>
+import { io } from 'socket.io-client';
+
+// Connect to WebSocket server
+const socket = io('https://wokibrain.grgcrew.com/ws', {
+  transports: ['websocket', 'polling'], // Fallback to polling if WS fails
+  reconnection: true,
+  reconnectionDelay: 1000,
+  reconnectionAttempts: 5
+});
+
+// Connection event handlers
+socket.on('connect', () => {
+  console.log('✅ Connected to WokiBrain WebSocket');
+});
+
+socket.on('disconnect', () => {
+  console.log('❌ Disconnected from server');
+});
+
+socket.on('connect_error', (error) => {
+  console.error('Connection error:', error);
+});</pre
+            >
+          </code>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2><span class="icon">📡</span> Subscribing to Events</h2>
+        <p>
+          Subscribe to receive real-time updates for a specific restaurant or sector. You can
+          subscribe to multiple rooms simultaneously.
+        </p>
+
+        <div class="code-block">
+          <span class="language">JavaScript</span>
+          <code>
+            <pre>
+// Subscribe to restaurant events
+socket.emit('subscribe', {
+  restaurantId: 'R1'
+});
+
+// Subscribe to sector events
+socket.emit('subscribe', {
+  restaurantId: 'R1',
+  sectorId: 'S1'
+});
+
+// Listen for subscription confirmation
+socket.on('subscribed', (data) => {
+  console.log('Subscribed:', data);
+  // { success: true, restaurantId: 'R1', sectorId: 'S1' }
+});</pre
+            >
+          </code>
+        </div>
+
+        <div class="example-box">
+          <h4>Subscribe Request Format</h4>
+          <div class="code-block">
+            <code>
+              <pre>
+{
+  "restaurantId": "string (required)",
+  "sectorId": "string (optional)"
+}</pre
+              >
+            </code>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2><span class="icon">📨</span> Receiving Booking Events</h2>
+        <p>
+          Once subscribed, you'll receive real-time
+          <span class="highlight">booking-event</span> messages when bookings are created, updated,
+          or cancelled.
+        </p>
+
+        <div class="code-block">
+          <span class="language">JavaScript</span>
+          <code>
+            <pre>
+// Listen for booking events
+socket.on('booking-event', (event) => {
+  console.log('Booking event received:', event);
+  
+  switch (event.type) {
+    case 'booking.created':
+      handleBookingCreated(event.data);
+      break;
+    case 'booking.updated':
+      handleBookingUpdated(event.data);
+      break;
+    case 'booking.cancelled':
+      handleBookingCancelled(event.data);
+      break;
+  }
+});
+
+function handleBookingCreated(booking) {
+  console.log('New booking:', booking.id);
+  // Update UI, send notification, etc.
+}</pre
+            >
+          </code>
+        </div>
+
+        <h3>Event Types</h3>
+        <table class="event-table">
+          <thead>
+            <tr>
+              <th>Event Type</th>
+              <th>Description</th>
+              <th>Triggered When</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>booking.created</code></td>
+              <td>New booking created</td>
+              <td>A booking is successfully created</td>
+            </tr>
+            <tr>
+              <td><code>booking.updated</code></td>
+              <td>Booking updated</td>
+              <td>Booking details are modified</td>
+            </tr>
+            <tr>
+              <td><code>booking.cancelled</code></td>
+              <td>Booking cancelled</td>
+              <td>A booking is cancelled</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="example-box">
+          <h4>Event Payload Structure</h4>
+          <div class="code-block">
+            <code>
+              <pre>
+{
+  "type": "booking.created",
+  "data": {
+    "id": "booking-123",
+    "restaurantId": "R1",
+    "sectorId": "S1",
+    "tableIds": ["T1", "T2"],
+    "partySize": 4,
+    "start": "2025-12-10T19:00:00Z",
+    "end": "2025-12-10T20:30:00Z",
+    "durationMinutes": 90,
+    "status": "CONFIRMED",
+    "guestName": "John Doe",
+    "guestEmail": "john@example.com",
+    "guestPhone": "+1234567890",
+    "createdAt": "2025-12-10T18:00:00Z",
+    "updatedAt": "2025-12-10T18:00:00Z"
+  },
+  "timestamp": "2025-12-10T18:00:00Z"
+}</pre
+              >
+            </code>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2><span class="icon">🔌</span> Unsubscribing</h2>
+        <p>Unsubscribe from events when you no longer need updates for a restaurant or sector.</p>
+
+        <div class="code-block">
+          <span class="language">JavaScript</span>
+          <code>
+            <pre>
+// Unsubscribe from restaurant events
+socket.emit('unsubscribe', {
+  restaurantId: 'R1'
+});
+
+// Unsubscribe from sector events
+socket.emit('unsubscribe', {
+  restaurantId: 'R1',
+  sectorId: 'S1'
+});
+
+// Listen for unsubscription confirmation
+socket.on('unsubscribed', (data) => {
+  console.log('Unsubscribed:', data);
+  // { success: true, restaurantId: 'R1', sectorId: 'S1' }
+});</pre
+            >
+          </code>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2><span class="icon">⚡</span> Complete Example</h2>
+        <p>
+          Here's a complete example showing how to integrate WebSocket events into your application:
+        </p>
+
+        <div class="code-block">
+          <span class="language">TypeScript</span>
+          <code>
+            <pre>
+import { io, Socket } from 'socket.io-client';
+
+interface BookingEvent {
+  type: 'booking.created' | 'booking.updated' | 'booking.cancelled';
+  data: {
+    id: string;
+    restaurantId: string;
+    sectorId: string;
+    tableIds: string[];
+    partySize: number;
+    start: string;
+    end: string;
+    durationMinutes: number;
+    status: 'CONFIRMED' | 'CANCELLED';
+    guestName?: string;
+    guestEmail?: string;
+    guestPhone?: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  timestamp: string;
+}
+
+class WokiBrainWebSocket {
+  private socket: Socket;
+  private restaurantId: string;
+  private sectorId?: string;
+
+  constructor(restaurantId: string, sectorId?: string) {
+    this.restaurantId = restaurantId;
+    this.sectorId = sectorId;
+    
+    this.socket = io('https://wokibrain.grgcrew.com/ws', {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
+    });
+
+    this.setupEventHandlers();
+  }
+
+  private setupEventHandlers(): void {
+    this.socket.on('connect', () => {
+      console.log('✅ Connected to WokiBrain');
+      this.subscribe();
+    });
+
+    this.socket.on('disconnect', () => {
+      console.log('❌ Disconnected from WokiBrain');
+    });
+
+    this.socket.on('subscribed', (data) => {
+      console.log('✅ Subscribed:', data);
+    });
+
+    this.socket.on('booking-event', (event: BookingEvent) => {
+      this.handleBookingEvent(event);
+    });
+  }
+
+  private subscribe(): void {
+    const payload: any = { restaurantId: this.restaurantId };
+    if (this.sectorId) {
+      payload.sectorId = this.sectorId;
+    }
+    this.socket.emit('subscribe', payload);
+  }
+
+  private handleBookingEvent(event: BookingEvent): void {
+    switch (event.type) {
+      case 'booking.created':
+        this.onBookingCreated(event.data);
+        break;
+      case 'booking.updated':
+        this.onBookingUpdated(event.data);
+        break;
+      case 'booking.cancelled':
+        this.onBookingCancelled(event.data);
+        break;
+    }
+  }
+
+  private onBookingCreated(booking: BookingEvent['data']): void {
+    console.log('📅 New booking created:', booking.id);
+    // Update your UI, send notifications, etc.
+  }
+
+  private onBookingUpdated(booking: BookingEvent['data']): void {
+    console.log('✏️ Booking updated:', booking.id);
+    // Update your UI
+  }
+
+  private onBookingCancelled(booking: BookingEvent['data']): void {
+    console.log('❌ Booking cancelled:', booking.id);
+    // Update your UI
+  }
+
+  public unsubscribe(): void {
+    const payload: any = { restaurantId: this.restaurantId };
+    if (this.sectorId) {
+      payload.sectorId = this.sectorId;
+    }
+    this.socket.emit('unsubscribe', payload);
+  }
+
+  public disconnect(): void {
+    this.socket.disconnect();
+  }
+}
+
+// Usage
+const ws = new WokiBrainWebSocket('R1', 'S1');</pre
+            >
+          </code>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2><span class="icon">🛠️</span> Features</h2>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <h4>⚡ Real-time Updates</h4>
+            <p>Receive instant notifications when bookings are created, updated, or cancelled.</p>
+          </div>
+          <div class="feature-card">
+            <h4>🔄 Auto-reconnection</h4>
+            <p>Automatic reconnection with exponential backoff if the connection is lost.</p>
+          </div>
+          <div class="feature-card">
+            <h4>📡 Room-based Subscriptions</h4>
+            <p>Subscribe to specific restaurants or sectors to receive only relevant events.</p>
+          </div>
+          <div class="feature-card">
+            <h4>🌐 Fallback Support</h4>
+            <p>Automatic fallback to HTTP polling if WebSocket connection fails.</p>
+          </div>
+          <div class="feature-card">
+            <h4>🔒 Secure</h4>
+            <p>WSS (WebSocket Secure) support for production environments.</p>
+          </div>
+          <div class="feature-card">
+            <h4>📊 Event Filtering</h4>
+            <p>Only receive events for the restaurants/sectors you're subscribed to.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2><span class="icon">⚠️</span> Important Notes</h2>
+        <div class="example-box warning">
+          <h4>Kafka Dependency</h4>
+          <p>
+            WebSocket functionality requires Kafka to be configured and running. Events are
+            published to Kafka and then broadcast to WebSocket clients.
+          </p>
+        </div>
+
+        <div class="example-box info">
+          <h4>Connection Management</h4>
+          <p>
+            Always handle connection errors and implement reconnection logic. The Socket.IO client
+            provides built-in reconnection, but you should also handle edge cases in your
+            application.
+          </p>
+        </div>
+
+        <div class="example-box info">
+          <h4>Production vs Development</h4>
+          <p>
+            Use <code>wss://</code> (secure WebSocket) in production and <code>ws://</code> in
+            development. The Socket.IO client will automatically handle the protocol upgrade.
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2><span class="icon">📚</span> Architecture</h2>
+        <p>WebSocket events are powered by Kafka event streaming:</p>
+        <div class="code-block">
+          <code>
+            <pre>
+┌─────────────┐
+│   Booking   │
+│   Created   │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────────────────────┐
+│   Domain Event Publisher        │
+│   - Publishes to Kafka          │
+└──────┬──────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────┐
+│   Kafka Event Bus               │
+│   Topic: wokibrain.events.*     │
+└──────┬──────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────┐
+│   WebSocket Worker              │
+│   - Consumes from Kafka         │
+│   - Broadcasts to WebSocket     │
+└──────┬──────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────┐
+│   Your Application              │
+│   - Receives real-time events   │
+└─────────────────────────────────┘</pre
+            >
+          </code>
+        </div>
+      </section>
+
+      <footer>
+        <p>WokiBrain WebSocket API Documentation</p>
+        <p>For more information, visit <a href="/api/v1/docs">REST API Documentation</a></p>
+      </footer>
+    </div>
+  </body>
+</html>

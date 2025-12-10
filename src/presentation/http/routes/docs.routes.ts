@@ -115,55 +115,24 @@ const docsRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.get('/docs/websockets', async (_request, reply) => {
-    // Try AsyncAPI-generated docs first (check if it's a directory with index.html)
-    const asyncApiDocsDir = join(process.cwd(), 'public', 'websockets-docs.html');
-    const asyncApiDocsIndex = join(asyncApiDocsDir, 'index.html');
+    // Serve modern static HTML documentation
+    const staticDocsPath = join(process.cwd(), 'public', 'websockets-docs.html');
 
-    // Fallback to static HTML if AsyncAPI docs don't exist
-    const staticDocsPath = join(process.cwd(), 'public', 'websockets-docs-static.html');
-
-    // Check if AsyncAPI docs directory exists with index.html
-    if (existsSync(asyncApiDocsIndex)) {
-      let html = readFileSync(asyncApiDocsIndex, 'utf8');
-      // Fix relative paths for CSS and JS assets to work with /api/v1/docs/websockets
-      html = html.replace(/href="css\//g, 'href="/api/v1/docs/websockets/css/');
-      html = html.replace(/src="js\//g, 'src="/api/v1/docs/websockets/js/');
-
-      // Inject AsyncAPI schema into the HTML
-      const asyncApiPath = join(process.cwd(), 'asyncapi.yaml');
-      if (existsSync(asyncApiPath)) {
-        try {
-          const yaml = await import('yaml');
-          const asyncApiSpec = readFileSync(asyncApiPath, 'utf8');
-          const jsonSpec = yaml.parse(asyncApiSpec);
-          // Replace undefined schema with the actual schema
-          html = html.replace(
-            /const schema = undefined;/g,
-            `const schema = ${JSON.stringify(jsonSpec)};`
-          );
-        } catch (error) {
-          fastify.log.error(error, 'Error parsing AsyncAPI spec for injection');
-        }
-      }
-
-      return reply.type('text/html').send(html);
-    }
-
-    // Check if AsyncAPI docs is a file (legacy format)
-    if (existsSync(asyncApiDocsDir) && !statSync(asyncApiDocsDir).isDirectory()) {
-      const html = readFileSync(asyncApiDocsDir, 'utf8');
-      return reply.type('text/html').send(html);
-    }
-
-    // Fallback to static HTML
-    if (existsSync(staticDocsPath)) {
+    if (existsSync(staticDocsPath) && !statSync(staticDocsPath).isDirectory()) {
       const html = readFileSync(staticDocsPath, 'utf8');
+      return reply.type('text/html').send(html);
+    }
+
+    // Fallback to legacy static HTML if exists
+    const legacyDocsPath = join(process.cwd(), 'public', 'websockets-docs-static.html');
+    if (existsSync(legacyDocsPath)) {
+      const html = readFileSync(legacyDocsPath, 'utf8');
       return reply.type('text/html').send(html);
     }
 
     return reply.code(404).send({
       error: 'WebSocket documentation not found',
-      message: 'Run "npm run docs:websockets" to generate documentation',
+      message: 'WebSocket documentation file not found',
     });
   });
 
