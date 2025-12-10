@@ -93,8 +93,19 @@ export class FastifyServer {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.redoc.ly'],
+          styleSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            'https://fonts.googleapis.com',
+            'https://cdnjs.cloudflare.com',
+          ],
+          scriptSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "'unsafe-eval'", // Required for AsyncAPI UI (uses new Function())
+            'https://cdn.redoc.ly',
+          ],
+          fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
           imgSrc: ["'self'", 'data:', 'https:'],
           connectSrc: ["'self'", 'https://cdn.redoc.ly'], // Allow fetching OpenAPI spec
         },
