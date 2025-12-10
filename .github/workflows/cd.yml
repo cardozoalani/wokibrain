@@ -10,7 +10,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   AWS_REGION: us-east-1
-  ECR_REPO: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/production-wokibrain
+  ECR_REPO: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/production-wokibrain
   ECS_CLUSTER: production-wokibrain-cluster
   ECS_SERVICE: production-wokibrain-service
 
