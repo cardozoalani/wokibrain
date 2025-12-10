@@ -36,8 +36,9 @@ info:
     Real-time event notifications via WebSocket (Socket.IO). See [AsyncAPI Documentation](/api/v1/docs/websockets) for complete WebSocket API documentation.
 
   contact:
-    name: Technical Challenge Support
+    name: WokiBrain Support
     email: cardozoalani@hotmail.com
+    url: https://wokibrain.grgcrew.com
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -135,7 +136,7 @@ paths:
             type: string
             format: date
           description: Reservation date (YYYY-MM-DD)
-          example: "2025-10-22"
+          example: '2025-10-22'
         - name: partySize
           in: query
           required: true
@@ -161,14 +162,14 @@ paths:
             type: string
             pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
           description: Preferred start time (HH:mm)
-          example: "20:00"
+          example: '20:00'
         - name: windowEnd
           in: query
           schema:
             type: string
             pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
           description: Preferred end time (HH:mm)
-          example: "23:45"
+          example: '23:45'
         - name: limit
           in: query
           schema:
@@ -192,9 +193,9 @@ paths:
                     durationMinutes: 90
                     candidates:
                       - kind: single
-                        tableIds: ["T4"]
-                        start: "2025-10-22T20:00:00-03:00"
-                        end: "2025-10-22T21:30:00-03:00"
+                        tableIds: ['T4']
+                        start: '2025-10-22T20:00:00-03:00'
+                        end: '2025-10-22T21:30:00-03:00'
                         score: 85.5
                 comboTables:
                   summary: Combination required
@@ -203,9 +204,9 @@ paths:
                     durationMinutes: 90
                     candidates:
                       - kind: combo
-                        tableIds: ["T2", "T3"]
-                        start: "2025-10-22T20:15:00-03:00"
-                        end: "2025-10-22T21:45:00-03:00"
+                        tableIds: ['T2', 'T3']
+                        start: '2025-10-22T20:15:00-03:00'
+                        end: '2025-10-22T21:45:00-03:00'
                         score: 72.3
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -309,7 +310,7 @@ paths:
                   sectorId: S1
                   partySize: 5
                   durationMinutes: 90
-                  date: "2025-10-22"
+                  date: '2025-10-22'
               withWindow:
                 summary: With time window
                 value:
@@ -317,9 +318,9 @@ paths:
                   sectorId: S1
                   partySize: 8
                   durationMinutes: 120
-                  date: "2025-10-22"
-                  windowStart: "20:00"
-                  windowEnd: "22:00"
+                  date: '2025-10-22'
+                  windowStart: '20:00'
+                  windowEnd: '22:00'
       responses:
         '201':
           description: Booking created successfully
@@ -876,7 +877,7 @@ paths:
                         type: array
                         items:
                           type: string
-                        example: ["T1", "T2", "T3", "T4", "T5"]
+                        example: ['T1', 'T2', 'T3', 'T4', 'T5']
                       bookingId:
                         type: string
                         example: B1
@@ -908,10 +909,10 @@ paths:
               name: Bistro Central
               timezone: America/Argentina/Buenos_Aires
               windows:
-                - start: "12:00"
-                  end: "16:00"
-                - start: "20:00"
-                  end: "23:45"
+                - start: '12:00'
+                  end: '16:00'
+                - start: '20:00'
+                  end: '23:45'
       responses:
         '201':
           description: Restaurant created
@@ -1102,7 +1103,7 @@ components:
           items:
             type: string
           description: Table identifiers
-          example: ["T4"]
+          example: ['T4']
         start:
           type: string
           format: date-time
@@ -1146,31 +1147,31 @@ components:
         date:
           type: string
           format: date
-          example: "2025-10-22"
+          example: '2025-10-22'
         windowStart:
           type: string
           pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
-          example: "20:00"
+          example: '20:00'
         windowEnd:
           type: string
           pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
-          example: "23:45"
+          example: '23:45'
         guestName:
           type: string
           maxLength: 100
-          example: "Juan Pérez"
+          example: 'Juan Pérez'
         guestPhone:
           type: string
           pattern: '^\+?[1-9]\d{1,14}$'
-          example: "+5491112345678"
+          example: '+5491112345678'
         guestEmail:
           type: string
           format: email
-          example: "juan@example.com"
+          example: 'juan@example.com'
         notes:
           type: string
           maxLength: 500
-          example: "Birthday celebration"
+          example: 'Birthday celebration'
 
     UpdateBookingRequest:
       type: object
@@ -1213,7 +1214,7 @@ components:
           type: array
           items:
             type: string
-          example: ["T4"]
+          example: ['T4']
         partySize:
           type: integer
           example: 5
@@ -1290,11 +1291,11 @@ components:
               start:
                 type: string
                 pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
-                example: "20:00"
+                example: '20:00'
               end:
                 type: string
                 pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
-                example: "23:45"
+                example: '23:45'
         createdAt:
           type: string
           format: date-time
@@ -1425,7 +1426,7 @@ components:
                 properties:
                   hour:
                     type: string
-                    example: "20:00"
+                    example: '20:00'
                   bookings:
                     type: integer
                     example: 45
@@ -1462,7 +1463,7 @@ components:
               - booking.updated
               - booking.cancelled
               - table.unavailable
-          example: ["booking.created", "booking.cancelled"]
+          example: ['booking.created', 'booking.cancelled']
         secret:
           type: string
           description: Webhook signature secret
@@ -1636,4 +1637,3 @@ components:
 
 security:
   - ApiKeyAuth: []
-
