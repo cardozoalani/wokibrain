@@ -128,6 +128,24 @@ const docsRoutes: FastifyPluginAsync = async (fastify) => {
       // Fix relative paths for CSS and JS assets to work with /api/v1/docs/websockets
       html = html.replace(/href="css\//g, 'href="/api/v1/docs/websockets/css/');
       html = html.replace(/src="js\//g, 'src="/api/v1/docs/websockets/js/');
+
+      // Inject AsyncAPI schema into the HTML
+      const asyncApiPath = join(process.cwd(), 'asyncapi.yaml');
+      if (existsSync(asyncApiPath)) {
+        try {
+          const yaml = await import('yaml');
+          const asyncApiSpec = readFileSync(asyncApiPath, 'utf8');
+          const jsonSpec = yaml.parse(asyncApiSpec);
+          // Replace undefined schema with the actual schema
+          html = html.replace(
+            /const schema = undefined;/g,
+            `const schema = ${JSON.stringify(jsonSpec)};`
+          );
+        } catch (error) {
+          fastify.log.error(error, 'Error parsing AsyncAPI spec for injection');
+        }
+      }
+
       return reply.type('text/html').send(html);
     }
 
