@@ -21,16 +21,26 @@ export class MongoDBClient {
       w: 'majority',
     };
 
-    // Configure TLS for DocumentDB
-    // Note: For DocumentDB, we need TLS enabled but can allow invalid certificates
-    // if the CA file is not properly configured. This is a temporary workaround.
-    options.tls = true;
-    options.tlsAllowInvalidCertificates = true;
-    options.tlsAllowInvalidHostnames = true;
+    // Configure TLS for DocumentDB (AWS) - only enable for non-local MongoDB
+    // Detect if we're connecting to DocumentDB or a remote MongoDB that requires TLS
+    const isLocalMongoDB =
+      this.config.MONGODB_URI.includes('localhost') ||
+      this.config.MONGODB_URI.includes('127.0.0.1') ||
+      this.config.MONGODB_URI.includes('mongodb:') ||
+      this.config.NODE_ENV === 'development';
 
-    // DocumentDB only supports SCRAM-SHA-1, not SCRAM-SHA-256
-    // We need to explicitly set the auth mechanism
-    options.authMechanism = 'SCRAM-SHA-1';
+    if (!isLocalMongoDB) {
+      // Configure TLS for DocumentDB
+      // Note: For DocumentDB, we need TLS enabled but can allow invalid certificates
+      // if the CA file is not properly configured. This is a temporary workaround.
+      options.tls = true;
+      options.tlsAllowInvalidCertificates = true;
+      options.tlsAllowInvalidHostnames = true;
+
+      // DocumentDB only supports SCRAM-SHA-1, not SCRAM-SHA-256
+      // We need to explicitly set the auth mechanism
+      options.authMechanism = 'SCRAM-SHA-1';
+    }
 
     // Try to use CA file if provided, but don't fail if it's not available
     if (this.config.MONGODB_TLS_CA_FILE) {
