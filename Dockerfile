@@ -18,8 +18,17 @@ COPY src ./src
 COPY openapi.yaml asyncapi.yaml ./
 # Build application
 RUN npm run build
-# Generate WebSocket documentation (ensure files exist even if generation fails)
-RUN npm run docs:websockets || (mkdir -p public && touch asyncapi.yaml || true)
+# Generate WebSocket documentation
+# Note: Uses the locally installed @asyncapi/cli from devDependencies
+# If generation fails (e.g., network issues during build), create placeholder so app doesn't crash
+RUN set -e; \
+    echo "Generating WebSocket documentation..."; \
+    npm run docs:websockets || { \
+    echo "⚠️  Warning: WebSocket docs generation failed during build"; \
+    mkdir -p public/websockets-docs.html; \
+    echo '<!DOCTYPE html><html><head><title>WebSocket Docs - Generation Failed</title></head><body><h1>Documentation generation failed during build</h1><p>Please run: npm run docs:websockets</p></body></html>' > public/websockets-docs.html/index.html; \
+    }; \
+    test -d public/websockets-docs.html && (test -f public/websockets-docs.html/index.html || test -f public/websockets-docs.html) && echo "✅ WebSocket docs ready" || echo "⚠️  WebSocket docs may be incomplete"
 
 # Final runtime image
 FROM base AS runner
