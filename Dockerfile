@@ -5,7 +5,7 @@ RUN apk add --no-cache libc6-compat
 # Production dependencies only
 FROM base AS deps
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --only=production --ignore-scripts && npm cache clean --force
 
 # Build stage with dev dependencies
 FROM base AS builder
