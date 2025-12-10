@@ -21,29 +21,51 @@ export class MongoDBClient {
       w: 'majority',
     };
 
-    // Configure TLS for DocumentDB (AWS) - only enable for non-local MongoDB
-    // Detect if we're connecting to DocumentDB or a remote MongoDB that requires TLS
+    // Dynamically detect environment: DocumentDB (production) vs MongoDB (local)
+    // DocumentDB detection: AWS DocumentDB endpoints contain .docdb. or .docdb-elastic.
+    // Also check for DocumentDB-specific parameters in URI (tls=true, replicaSet=rs0)
+    const isDocumentDB =
+      this.config.MONGODB_URI.includes('.docdb.') ||
+      this.config.MONGODB_URI.includes('.docdb-elastic.') ||
+      (this.config.MONGODB_URI.includes('tls=true') &&
+        this.config.MONGODB_URI.includes('replicaSet=rs0'));
+
+    // Local MongoDB detection: localhost, 127.0.0.1, or Docker service name
     const isLocalMongoDB =
       this.config.MONGODB_URI.includes('localhost') ||
       this.config.MONGODB_URI.includes('127.0.0.1') ||
-      this.config.MONGODB_URI.includes('mongodb:') ||
-      this.config.NODE_ENV === 'development';
+      this.config.MONGODB_URI.includes('mongodb:') || // Docker service name
+      (this.config.NODE_ENV === 'development' && !isDocumentDB);
 
-    if (!isLocalMongoDB) {
-      // Configure TLS for DocumentDB
-      // Note: For DocumentDB, we need TLS enabled but can allow invalid certificates
-      // if the CA file is not properly configured. This is a temporary workaround.
+    if (isDocumentDB) {
+      // DocumentDB (AWS) configuration
+      logger.info('Detected DocumentDB connection, configuring TLS and SCRAM-SHA-1');
       options.tls = true;
       options.tlsAllowInvalidCertificates = true;
       options.tlsAllowInvalidHostnames = true;
 
       // DocumentDB only supports SCRAM-SHA-1, not SCRAM-SHA-256
-      // We need to explicitly set the auth mechanism
       options.authMechanism = 'SCRAM-SHA-1';
+
+      // DocumentDB-specific connection settings
+      options.retryWrites = false; // DocumentDB doesn't support retryWrites
+      options.readPreference = 'secondaryPreferred'; // Use read replicas when available
+    } else if (isLocalMongoDB) {
+      // Local MongoDB configuration (no TLS, standard auth)
+      logger.info('Detected local MongoDB connection, using standard configuration');
+      // No TLS, use default auth mechanism (SCRAM-SHA-256 for MongoDB 4.0+)
+      options.retryWrites = true;
+    } else {
+      // Remote MongoDB (not DocumentDB) - may require TLS
+      logger.info('Detected remote MongoDB connection');
+      // Check if URI explicitly requests TLS
+      if (this.config.MONGODB_URI.includes('tls=true')) {
+        options.tls = true;
+      }
     }
 
-    // Try to use CA file if provided, but don't fail if it's not available
-    if (this.config.MONGODB_TLS_CA_FILE) {
+    // Try to use CA file if provided (only relevant for DocumentDB or TLS connections)
+    if (this.config.MONGODB_TLS_CA_FILE && (isDocumentDB || options.tls)) {
       try {
         const ca = readFileSync(this.config.MONGODB_TLS_CA_FILE);
         options.tlsCAFile = this.config.MONGODB_TLS_CA_FILE;
@@ -59,9 +81,10 @@ export class MongoDBClient {
         );
         // Continue with invalid certificates allowed
       }
-    } else {
+    } else if (isDocumentDB && !this.config.MONGODB_TLS_CA_FILE) {
+      // Only warn for DocumentDB if CA file is not set
       logger.warn(
-        'MONGODB_TLS_CA_FILE not set, allowing invalid certificates (not recommended for production)'
+        'MONGODB_TLS_CA_FILE not set for DocumentDB, allowing invalid certificates (not recommended for production)'
       );
     }
 
